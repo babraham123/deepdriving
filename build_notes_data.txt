@@ -1,0 +1,58 @@
+sudo apt-get update
+
+TensorFlow
+wget https://ci.tensorflow.org/view/Nightly/job/nightly-matrix-cpu/TF_BUILD_IS_OPT=OPT,TF_BUILD_IS_PIP=PIP,TF_BUILD_PYTHON_VERSION=PYTHON2,label=cpu-slave/lastSuccessfulBuild/artifact/pip_test/whl/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
+sudo apt-get install python-pip python-dev
+sudo pip install tensorflow
+Test
+python
+>>> import tensorflow as tf
+>>> hello = tf.constant('Hello, TensorFlow!')
+>>> sess = tf.Session()
+>>> print(sess.run(hello))
+Hello, TensorFlow!
+
+sudo pip install numpy scipy scikit-learn pillow matplotlib h5py keras
+sudo apt-get install -y python-tk ipython
+ 
+sudo apt-get install -y libopencv-dev python-opencv
+sudo apt-get install -y build-essential libxmu-dev libxmu6 libxi-dev libxine2-dev libalut-dev freeglut3 freeglut3-dev cmake libogg-dev libvorbis-dev libxxf86dga-dev libxxf86vm-dev libxrender-dev libxrandr-dev zlib1g-dev libpng12-dev
+sudo apt-get install -y libglib2.0-dev  libgl1-mesa-dev libglu1-mesa-dev  freeglut3-dev  libplib-dev  libopenal-dev libalut-dev libxi-dev libxmu-dev libxrender-dev  libxrandr-dev libpng12-dev 
+
+wget http://plib.sourceforge.net/dist/plib-1.8.5.tar.gz
+tar xzf plib-1.8.5.tar.gz
+cd plib-1.8.5
+./configure CFLAGS="-O2 -m64 -fPIC" CPPFLAGS="-O2 -fPIC" CXXFLAGS="-O2 -fPIC" LDFLAGS="-L/usr/lib64"
+sudo make install
+
+wget https://github.com/kcat/openal-soft/archive/openal-soft-1.13.tar.gz
+tar zxf openal-soft-1.13.tar.gz
+cd openal-soft-openal-soft-1.13
+cd cmake
+cmake ..
+make
+sudo make install
+
+python3 -V
+sudo apt-get install -y python3-pip
+sudo apt-get install -y libssl-dev libffi-dev python-dev
+sudo pip3 install numpy scipy scikit-learn
+
+gym_torcs
+sudo apt-get install -y python-numpy python-dev cmake zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libboost-all-dev libsdl2-dev swig xautomation xvfb git
+sudo pip install 'gym[all]'
+(make failed)
+sudo apt-get install -y libglib2.0-dev  libgl1-mesa-dev libglu1-mesa-dev  freeglut3-dev  libplib-dev  libopenal-dev libalut-dev libxi-dev libxmu-dev libxrender-dev  libxrandr-dev libpng12-dev 
+git clone https://github.com/ugo-nama-kun/gym_torcs.git
+cd gym_torcs/vtorcs-RL-color/
+./configure
+make
+sudo make install
+sudo make datainstall
+
+
+LevelDB
+sudo apt-get install libleveldb1 libleveldb-dev
+pip install plyvel
+
+
