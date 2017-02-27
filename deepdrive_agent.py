@@ -7,7 +7,7 @@ from alexnet import AlexNet
 class Agent(object):
     def __init__(self, dim_action):
         self.dim_action = dim_action
-        self.model = AlexNet(weights_path="weights/alexnet_weights.h5")
+        self.model = AlexNet(weights_path="deepdriving_weights.h5")
 
     def act(self, ob, reward, done, vision_on):
         #print("ACT!")

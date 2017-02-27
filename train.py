@@ -6,6 +6,23 @@ import plyvel
 
 def train(dbpath):
 
+    data = get_data(dbpath)
+
+    model = AlexNet()
+    model.fit(X_train, Y_train,
+          batch_size=64, nb_epoch=4700, verbose=1,
+          validation_data=(X_test, Y_test))
+
+    score = model.evaluate(X_test, Y_test, batch_size=64, verbose=1)
+    print('Test score:', score)
+
+    model.save('deepdriving_model.h5')
+    model.save_weights('deepdriving_weights.h5')
+    with open('deepdriving_model.json', 'w') as f:
+        f.write(model.to_json())
+
+
+def get_data(dbpath):
     # the data, shuffled and split between tran and test sets
     # load_data(datapath) from leveldb
     db = plyvel.DB(dbpath)
@@ -19,6 +36,11 @@ def train(dbpath):
 
     db.close()
 
+    # resize 3x227x227
+    # subtract mean
+    # crop = 0, mirror = false
+    # shuffle
+
     print("X_train original shape", X_train.shape)
     print("y_train original shape", y_train.shape)
 
@@ -31,16 +53,5 @@ def train(dbpath):
     print("Training matrix shape", X_train.shape)
     print("Testing matrix shape", X_test.shape)
 
-    #Y_train = np_utils.to_categorical(y_train, nb_classes)
-    #Y_test = np_utils.to_categorical(y_test, nb_classes)
-
-    model.fit(X_train, Y_train,
-          batch_size=128, nb_epoch=4, verbose=1, # show_accuracy=True
-          validation_data=(X_test, Y_test))
-
-    # LOOK AT LOSS
-    score = model.evaluate(X_test, Y_test,
-                       show_accuracy=True, verbose=0)
-    print('Test score:', score[0])
-    print('Test accuracy:', score[1])
+    return {'X_train': X_train, 'Y_train': Y_train, 'X_test': X_test, 'Y_test': Y_test}
 

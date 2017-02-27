@@ -11,11 +11,9 @@ step = 0
 
 # Generate a Torcs environment
 env = TorcsEnv(vision=vision, throttle=False)
-
 agent = Agent(1)  # steering only
 
-
-print("TORCS Experiment Start.")
+print("TORCS Experiment Start")
 for i in range(episode_count):
     print("Episode : " + str(i))
 
@@ -42,4 +40,4 @@ for i in range(episode_count):
     print("")
 
 env.end()  # This is for shutting down TORCS
-print("Finish.")
+print("Finish")
