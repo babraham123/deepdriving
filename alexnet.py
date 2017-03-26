@@ -19,7 +19,7 @@ from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs
     """
 
 def AlexNet(weights_path=None):
-    inputs = Input(shape=(3, 227, 227)) # input size
+    inputs = Input(shape=(3, 280, 210)) # input size
 
     conv_1 = Convolution2D(96, 11, 11, subsample=(4,4), activation='relu',
                            name='conv_1')(inputs)

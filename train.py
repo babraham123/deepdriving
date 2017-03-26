@@ -12,6 +12,7 @@ def train(dbpath):
     model.fit(X_train, Y_train,
           batch_size=64, nb_epoch=4700, verbose=1,
           validation_data=(X_test, Y_test))
+    # max_iter = #epochs * (training set/training_batch_size) 
 
     score = model.evaluate(X_test, Y_test, batch_size=64, verbose=1)
     print('Test score:', score)

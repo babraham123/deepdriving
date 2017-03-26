@@ -1,9 +1,25 @@
 sudo apt-get update
 
+CUDA
+become a member of the Nvidia developer community
+wget URL
+start computer in low graphics mode
+sudo apt-get purge nvidia*
+sudo ubuntu-drivers devices
+sudo apt-get install nvidia-367
+
+CUDNN
+wget URL
+sudo cp -i include/cudnn.h /usr/local/cuda-8.0/include/
+sudo cp -i lib64/libcudnn* /usr/local/cuda-8.0/lib64/
+
 TensorFlow
 wget https://ci.tensorflow.org/view/Nightly/job/nightly-matrix-cpu/TF_BUILD_IS_OPT=OPT,TF_BUILD_IS_PIP=PIP,TF_BUILD_PYTHON_VERSION=PYTHON2,label=cpu-slave/lastSuccessfulBuild/artifact/pip_test/whl/tensorflow-0.12.1-cp27-none-linux_x86_64.whl
 sudo apt-get install python-pip python-dev
 sudo pip install tensorflow
+[or]
+pip install --ignore-installed --upgrade https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.0.1-cp36-cp36m-linux_x86_64.whl
+
 Test
 python
 >>> import tensorflow as tf
@@ -39,10 +55,11 @@ sudo apt-get install -y libssl-dev libffi-dev python-dev
 sudo pip3 install numpy scipy scikit-learn
 
 gym_torcs
-sudo apt-get install -y python-numpy python-dev cmake zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libboost-all-dev libsdl2-dev swig xautomation xvfb git
+sudo apt-get install -y python-numpy python-dev cmake zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libboost-all-dev libsdl2-dev swig xautomation xvfb git libglib2.0-dev  libgl1-mesa-dev libglu1-mesa-dev  freeglut3-dev  libplib-dev libopenal-dev libalut-dev libxi-dev libxmu-dev libxrender-dev  libxrandr-dev libpng12-dev 
+
+sudo apt-get install zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libsdl2-dev swig xautomation xvfb libglib2.0-dev  libgl1-mesa-dev libglu1-mesa-dev  freeglut3-dev  libplib-dev libopenal-dev libalut-dev libxi-dev libxmu-dev libxrender-dev  libxrandr-dev libpng12-dev 
 sudo pip install 'gym[all]'
 (make failed)
-sudo apt-get install -y libglib2.0-dev  libgl1-mesa-dev libglu1-mesa-dev  freeglut3-dev  libplib-dev  libopenal-dev libalut-dev libxi-dev libxmu-dev libxrender-dev  libxrandr-dev libpng12-dev 
 git clone https://github.com/ugo-nama-kun/gym_torcs.git
 cd gym_torcs/vtorcs-RL-color/
 ./configure
@@ -50,9 +67,99 @@ make
 sudo make install
 sudo make datainstall
 
+Boost
+conda install boost
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/asankar/anaconda3/lib
+conda install nomkl numpy scipy scikit-learn numexpr
+conda remove mkl mkl-service
+
+Protobuf
+wget https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip
+wget https://github.com/google/protobuf/releases/download/v3.2.0/protobuf-python-3.2.0.zip
+wget https://github.com/google/protobuf/releases/download/v3.2.0/protobuf-cpp-3.2.0.zip
+sudo apt-get install autoconf automake libtool curl make g++ unzip
+unzip protoc-3.2.0-linux-x86_64.zip -d protoc
+sudo cp bin/protoc /usr/bin/
+unzip protobuf-cpp-3.2.0.zip
+cd protobuf-cpp/protobuf-3.2.0
+./configure
+make
+make check
+sudo make install
+sudo ldconfig
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+unzip protobuf-python-3.2.0.zip -d protobuf-python
+cd protobuf-python/protobuf-3.2.0
+python setup.py build
+python setup.py test
+
+
+Caffe
+sudo apt-get install -y libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev 
+sudo apt-get install --no-install-recommends libboost-all-dev
+sudo apt-get install -y libatlas-base-dev libgflags-dev libgoogle-glog-dev liblmdb-dev
+(old protobuf only)
+sudo apt-get install -y libprotobuf-dev protobuf-compiler
+git clone https://github.com/BVLC/caffe.git
+cd caffe
+make all
+make install
+make runtest
+cd python
+for req in $(cat requirements.txt); do pip install $req; done
+cd ..
+make pycaffe
+export PYTHONPATH=$PYTHONPATH:/home/asankar/deepdrive/caffe36/python
+
+sudo apt-get install libtiff4-dev
+exclude anaconda3/lib from LD_LIBRARY_PATH during make all for libopencv problem
+edit requirements so that dateutil>=2.0
 
 LevelDB
 sudo apt-get install libleveldb1 libleveldb-dev
-pip install plyvel
+sudo pip install plyvel
 
+pip install --user cython h5py
+pip install Pillow
+pip install keras
+git clone https://github.com/heuritech/convnets-keras.git
+cd convnets-keras
+sudo /home/asankar/anaconda3/bin/python3.6 setup.py install
+
+Convert Caffe Weights
+git clone https://github.com/ethereon/caffe-tensorflow.git
+wget http://deepdriving.cs.princeton.edu/DeepDrivingCode_v2.zip
+unzip DeepDrivingCode_v2.zip
+mkdir models
+cp DeepDrivingCode/Caffe_driving/torcs/pre_trained/driving_* models/
+cd caffe36/build/tools
+./upgrade_net_proto_binary ../../../models/driving_train_1F_iter_140000.caffemodel ../../../models/driving_train_1F_iter_140000_new.binaryproto
+./upgrade_net_proto_text ../../../models/driving_run_1F.prototxt ../../../models/driving_run_1F_new.prototxt
+cd ../../../caffe-tensorflow
+vi kaffe/graph.py +145
+# change rb to r
+vi kaffe/graph.py +124
+# add !s to last 2 string format sections
+vi kaffe/graph.py +122
+vi kaffe/transformers.py +127
+vi kaffe/transformers.py +291
+# convert to list list(node.data)
+
+cp ../models/driving_run_1F_new.prototxt ../models/driving_run_1F_new2.prototxt
+# change first data layer to an input layer (3x280x210)
+python convert.py --caffemodel=../models/driving_train_1F_iter_140000_new.binaryproto --code-output-path=../models/caffe_alexnet.py --data-output-path=../models/ ../models/driving_run_1F_new2.prototxt
+
+
+In total, we collect 484,815 images for training. The
+training procedure is similar to training an AlexNet on ImageNet
+data. The differences are: the input image has a resolution
+of 280 × 210 and is no longer a square image. We do
+not use any crops or a mirrored version. We train our model
+from scratch. We choose an initial learning rate of 0.01, and
+each mini-batch consists of 64 images randomly selected
+from the training samples. After 140,000 iterations, we stop
+the training process.
+
+export PYTHONPATH=/home/asankar/deepdrive/caffe36/python
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/lib:/home/asankar/anaconda3/lib
 
