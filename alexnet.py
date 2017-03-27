@@ -1,22 +1,20 @@
 from keras.models import Sequential, Model
-from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, \
-    Input, merge
+from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, Input # , merge
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD
 import numpy as np
 from scipy.misc import imread, imresize, imsave
 
-from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, \
-    splittensor, Softmax4D
+from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, splittensor, Softmax4D
 from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
 
-    """
-    Returns a keras model for a CNN.
-    input data are of the shape (227,227), and the colors in the RGB order (default)
- 
-    model: The keras model for this convnet
-    output_dict: Dict of feature layers, asked for in output_layers.
-    """
+"""
+Returns a keras model for a CNN.
+input data are of the shape (227,227), and the colors in the RGB order (default)
+
+model: The keras model for this convnet
+output_dict: Dict of feature layers, asked for in output_layers.
+"""
 
 def AlexNet(weights_path=None):
     inputs = Input(shape=(3, 280, 210)) # input size
