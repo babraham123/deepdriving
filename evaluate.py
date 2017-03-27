@@ -4,63 +4,44 @@ from caffe.proto import caffe_pb2
 import plyvel
 import numpy as np
 import h5py
+from keras.models import load_model
 
-# nohup python train.py &
+# nohup python evaluate.py &
 # ps -ef | grep nohup 
 # kill UID 
 
-def train(db, keys, avg):
+def evaluate(db, keys, avg):
     m = len(keys)
-    # epochs = 19
-    # iterations = 140000
-    batch_size = 64
-    stream_size = batch_size * 150 # ~10K images loaded at a time
 
-    model = AlexNet()
-
-    for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i+stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1)
-
-    # model.fit(X_train, Y_train,
-    #       batch_size=64, nb_epoch=4700, verbose=1,
-    #       validation_data=(X_test, Y_test))
-    # max_iter = #epochs * (training set/training_batch_size) 
-
-    return model
-
-def load_average():
-    h5f = h5py.File('deepdriving_average.h5','r')
-    avg = h5f['average'][:]
-    h5f.close()
-    return avg
-
-
-def get_data(dbpath, keys):
-    X_train = np.array([])
-    Y_train = np.array([])
+    model = load_model('deepdriving_model.h5')
+    error = np.zeros((0, 14))
 
     for key in keys:
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
         img = img.reshape(1, 3*210*280) / 255
-        img = np.subtract(img, avg);
-        X_train = np.concatenate((X_train, img))
+        X = np.subtract(img, avg)
+        X = X.astype('float32')
 
-        affordances = [i for i in datum.float_data]
-        affordances = M = np.array(affordances)
-        affordances = affordances.reshape(1, 14)
-        Y_train = np.concatenate((Y_train, affordances))
+        Y = [i for i in datum.float_data]
+        Y = M = np.array(Y)
+        Y = Y.reshape(1, 14)
+        Y = Y.astype('float32')
+        
+        Y_predict = model.predict(X)
+        error = np.concatenate((error, (Y - Y_predict) ** 2), axis=0)
 
-    # resize 3x210x280
-    # subtract mean
-    # crop = 0, mirror = false
-    # shuffle
+    mse = error.mean(axis=0)
 
-    X_train = X_train.astype('float32')
-    Y_train = Y_train.astype('float32')
-    return X_train, Y_train
+    return mse
+
+
+def load_average():
+    h5f = h5py.File('deepdriving_average.h5','r')
+    avg = h5f['average'][:]
+    h5f.close()
+    return avg
 
 
 if __name__ == "__main__":
@@ -71,12 +52,8 @@ if __name__ == "__main__":
         keys.append(key)
 
     avg = load_average()
-    model = train(db, keys, avg)
-
-    model.save('deepdriving_model.h5')
-    model.save_weights('deepdriving_weights.h5')
-    with open('deepdriving_model.json', 'w') as f:
-        f.write(model.to_json())
+    scores = evaluate(db, keys, avg)
+    print(scores)
 
     db.close()
 

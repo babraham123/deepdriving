@@ -31,21 +31,21 @@ def train(db, keys, avg):
 
 
 def get_data(dbpath, keys, avg):
-    X_train = np.array([])
-    Y_train = np.array([])
+    X_train = np.zeros((0, 3*210*280))
+    Y_train = np.zeros((0, 14))
 
     for key in keys:
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
         img = img.reshape(1, 3*210*280) / 255
-        img = np.subtract(img, avg);
-        X_train = np.concatenate((X_train, img))
+        img = np.subtract(img, avg)
+        X_train = np.concatenate((X_train, img), axis=0)
 
         affordances = [i for i in datum.float_data]
         affordances = M = np.array(affordances)
         affordances = affordances.reshape(1, 14)
-        Y_train = np.concatenate((Y_train, affordances))
+        Y_train = np.concatenate((Y_train, affordances), axis=0)
 
     # resize 3x210x280
     # subtract mean
