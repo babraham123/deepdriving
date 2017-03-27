@@ -4,6 +4,10 @@ from caffe.proto import caffe_pb2
 import plyvel
 import numpy as np
 
+# nohup python train.py &
+# ps -ef | grep nohup 
+# kill UID 
+
 def train(db, keys, avg):
     m = len(keys)
     # epochs = 19

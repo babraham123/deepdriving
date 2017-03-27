@@ -1,20 +1,24 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from keras.utils import np_utils
 from alexnet import AlexNet
+import caffe
+from caffe.proto import caffe_pb2
 import plyvel
+import numpy as np
 
-def train(db, keys):
+# nohup python train.py &
+# ps -ef | grep nohup 
+# kill UID 
+
+def train(db, keys, avg):
     m = len(keys)
-    # 19 epochs
-    iterations = 10 # 140000
+    # epochs = 19
+    # iterations = 140000
     batch_size = 64
     stream_size = batch_size * 150 # ~10K images loaded at a time
 
     model = AlexNet()
 
     for i in range(0, m, stream_size):
-        X_train, Y_train = get_data(db, keys[i:(i+stream_size)])
+        X_batch, Y_batch = get_data(db, keys[i:(i+stream_size)], avg)
         model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1)
 
     # model.fit(X_train, Y_train,
@@ -22,37 +26,49 @@ def train(db, keys):
     #       validation_data=(X_test, Y_test))
     # max_iter = #epochs * (training set/training_batch_size) 
 
-    score = model.evaluate(X_test, Y_test, batch_size=64, verbose=1)
-    print('Test score:', score)
-
     return model
 
 
 def get_data(dbpath, keys):
+    X_train = np.array([])
+    Y_train = np.array([])
+
     for key in keys:
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
+        img = img.reshape(1, 3*210*280) / 255
+        img = np.subtract(img, avg);
+        X_train = np.concatenate((X_train, img))
+
         affordances = [i for i in datum.float_data]
+        affordances = M = np.array(affordances)
+        affordances = affordances.reshape(1, 14)
+        Y_train = np.concatenate((Y_train, affordances))
 
     # resize 3x210x280
     # subtract mean
     # crop = 0, mirror = false
     # shuffle
 
-    print("X_train original shape", X_train.shape)
-    print("y_train original shape", y_train.shape)
-
-    X_train = X_train.reshape(60000, 784)
-    X_test = X_test.reshape(10000, 784)
     X_train = X_train.astype('float32')
-    X_test = X_test.astype('float32')
-    X_train /= 255
-    X_test /= 255
-    print("Training matrix shape", X_train.shape)
-    print("Testing matrix shape", X_test.shape)
+    Y_train = Y_train.astype('float32')
+    return X_train, Y_train
 
-    return {'X_train': X_train, 'Y_train': Y_train, 'X_test': X_test, 'Y_test': Y_test}
+
+def calc_average(db, keys):
+    avg = np.zeros((3, 210, 280))
+    n = 0
+
+    for key in keys:
+        datum = caffe_pb2.Datum.FromString(db.get(key))
+        img = caffe.io.datum_to_array(datum)
+        
+        avg = np.add(avg*n, img) / (n+1)
+        n = n+1
+
+    avg = avg.reshape(1, 3*210*280) / 255
+    return avg
 
 
 if __name__ == "__main__":
@@ -62,7 +78,8 @@ if __name__ == "__main__":
     for key, value in db:
         keys.append(key)
 
-    model = train(db, keys)
+    avg = calc_average(db, keys)
+    model = train(db, keys, avg)
 
     model.save('deepdriving_model.h5')
     model.save_weights('deepdriving_weights.h5')
@@ -70,5 +87,4 @@ if __name__ == "__main__":
         f.write(model.to_json())
 
     db.close()
-
 
