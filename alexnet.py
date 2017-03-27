@@ -1,12 +1,12 @@
 from keras.models import Sequential, Model
-from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, Input # , merge
+from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, Input #, merge
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD
 import numpy as np
 from scipy.misc import imread, imresize, imsave
 
-from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, splittensor, Softmax4D
-from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
+from convnetskeras.customlayers import crosschannelnormalization #, convolution2Dgroup, splittensor, Softmax4D
+# from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
 
 """
 Returns a keras model for a CNN.
