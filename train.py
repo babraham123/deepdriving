@@ -1,13 +1,13 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from keras.utils import np_utils
 from alexnet import AlexNet
+import caffe
+from caffe.proto import caffe_pb2
 import plyvel
+import numpy as np
 
 def train(db, keys, avg):
     m = len(keys)
-    # 19 epochs
-    iterations = 140000
+    # epochs = 19
+    # iterations = 140000
     batch_size = 64
     stream_size = batch_size * 150 # ~10K images loaded at a time
 
