@@ -3,6 +3,7 @@ import caffe
 from caffe.proto import caffe_pb2
 import plyvel
 import numpy as np
+import h5py
 
 # nohup python train.py &
 # ps -ef | grep nohup 
@@ -27,6 +28,12 @@ def train(db, keys, avg):
     # max_iter = #epochs * (training set/training_batch_size) 
 
     return model
+
+def load_average():
+    h5f = h5py.File('deepdriving_average.h5','r')
+    avg = h5f['average'][:]
+    h5f.close()
+    return avg
 
 
 def get_data(dbpath, keys):
@@ -56,21 +63,6 @@ def get_data(dbpath, keys):
     return X_train, Y_train
 
 
-def calc_average(db, keys):
-    avg = np.zeros((3, 210, 280))
-    n = 0
-
-    for key in keys:
-        datum = caffe_pb2.Datum.FromString(db.get(key))
-        img = caffe.io.datum_to_array(datum)
-        
-        avg = np.add(avg*n, img) / (n+1)
-        n = n+1
-
-    avg = avg.reshape(1, 3*210*280) / 255
-    return avg
-
-
 if __name__ == "__main__":
     dbpath = '../TORCS_baseline_testset/TORCS_Caltech_1F_Testing_280/'
     db = plyvel.DB(dbpath)
@@ -78,7 +70,7 @@ if __name__ == "__main__":
     for key, value in db:
         keys.append(key)
 
-    avg = calc_average(db, keys)
+    avg = load_average()
     model = train(db, keys, avg)
 
     model.save('deepdriving_model.h5')
@@ -88,3 +80,17 @@ if __name__ == "__main__":
 
     db.close()
 
+# datum.add_float_data(shared->angle);
+# datum.add_float_data(shared->toMarking_L);
+# datum.add_float_data(shared->toMarking_M);
+# datum.add_float_data(shared->toMarking_R);
+# datum.add_float_data(shared->dist_L);
+# datum.add_float_data(shared->dist_R);
+# datum.add_float_data(shared->toMarking_LL);
+# datum.add_float_data(shared->toMarking_ML);
+# datum.add_float_data(shared->toMarking_MR);
+# datum.add_float_data(shared->toMarking_RR);
+# datum.add_float_data(shared->dist_LL);
+# datum.add_float_data(shared->dist_MM);
+# datum.add_float_data(shared->dist_RR);
+# datum.add_float_data(shared->fast);

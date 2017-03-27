@@ -3,6 +3,7 @@ import caffe
 from caffe.proto import caffe_pb2
 import plyvel
 import numpy as np
+import h5py
 
 # nohup python train.py &
 # ps -ef | grep nohup 
@@ -70,6 +71,17 @@ def calc_average(db, keys):
     avg = avg.reshape(1, 3*210*280) / 255
     return avg
 
+def save_average(avg):
+    h5f = h5py.File('deepdriving_average.h5', 'w')
+    h5f.create_dataset('average', data=avg)
+    h5f.close()
+    
+def load_average():
+    h5f = h5py.File('deepdriving_average.h5','r')
+    avg = h5f['average'][:]
+    h5f.close()
+    return avg
+
 
 if __name__ == "__main__":
     dbpath = '../TORCS_Training_1F/'
@@ -79,6 +91,7 @@ if __name__ == "__main__":
         keys.append(key)
 
     avg = calc_average(db, keys)
+    save_average(avg)
     model = train(db, keys, avg)
 
     model.save('deepdriving_model.h5')
