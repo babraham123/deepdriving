@@ -5,7 +5,7 @@ from keras.optimizers import SGD
 import numpy as np
 from scipy.misc import imread, imresize, imsave
 
-from convnetskeras.customlayers import crosschannelnormalization #, convolution2Dgroup, splittensor, Softmax4D
+# from convnetskeras.customlayers import crosschannelnormalization #, convolution2Dgroup, splittensor, Softmax4D
 # from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
 
 """
@@ -23,7 +23,7 @@ def AlexNet(weights_path=None):
                            name='conv_1')(inputs)
     # initial weights filler? gaussian, std 0.01
     conv_2 = MaxPooling2D((3, 3), strides=(2,2))(conv_1)
-    conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
+    #conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
     # in caffe: Local Response Normalization (LRN)
     # alpha = 1e-4, k=2, beta=0.75, n=5,
     conv_2 = ZeroPadding2D((2,2))(conv_2)
@@ -37,7 +37,7 @@ def AlexNet(weights_path=None):
     conv_2 = Convolution2D(256, 5, 5, activation="relu", name='conv_2')(conv_2)
 
     conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
-    conv_3 = crosschannelnormalization()(conv_3)
+    #conv_3 = crosschannelnormalization()(conv_3)
     conv_3 = ZeroPadding2D((1, 1))(conv_3)
     conv_3 = Convolution2D(384, 3, 3, activation='relu', name='conv_3')(conv_3)
 

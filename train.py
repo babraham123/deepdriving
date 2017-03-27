@@ -25,7 +25,7 @@ def train(db, keys, avg):
     return model
 
 
-def get_data(dbpath, keys):
+def get_data(dbpath, keys, avg):
     X_train = np.array([])
     Y_train = np.array([])
 
