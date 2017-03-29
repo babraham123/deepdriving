@@ -2,18 +2,21 @@ import caffe
 from caffe.proto import caffe_pb2
 import plyvel
 import numpy as np
+import cv2
 
 db = plyvel.DB('../TORCS_baseline_testset/TORCS_Caltech_1F_Testing_280/')
 # db = plyvel.DB('../TORCS_Training_1F/')
 
 print('Keys:')
-for key, value in db:
+for key, ~ in db:
     print(key)
 
 datum = caffe_pb2.Datum.FromString(db.get(b'00000001'))
 arr = caffe.io.datum_to_array(datum)
 print([i for i in datum.float_data])
 print(arr.shape)
+
+cv2.imwrite('color_img.jpg', arr)
     
 db.close()
 
