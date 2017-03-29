@@ -5,6 +5,7 @@ import plyvel
 import numpy as np
 import h5py
 from keras.models import load_model
+from keras import backend as K
 
 # nohup python evaluate.py &
 # ps -ef | grep nohup 
@@ -20,9 +21,14 @@ def evaluate(db, keys, avg):
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
-        img = img.reshape(1, 3*210*280) / 255
+        if K.image_dim_ordering() == 'tf':
+            img = np.swapaxes(img, 0, 1)
+            img = np.swapaxes(img, 1, 2)
+        # if 'th', leave as is
+
+        img /= 255
+        img = img.astype('float32')
         X = np.subtract(img, avg)
-        X = X.astype('float32')
 
         Y = [i for i in datum.float_data]
         Y = M = np.array(Y)

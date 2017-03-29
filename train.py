@@ -32,38 +32,33 @@ def train(db, keys, avg):
 
 
 def get_data(dbpath, keys, avg):
-    X_train = np.zeros((0, 3*210*280))
+    if K.image_dim_ordering() == 'tf':
+        X_train = np.zeros((210, 280, 3, 0))
+    else:
+        X_train = np.zeros((3, 210, 280, 0))
+
     Y_train = np.zeros((0, 14))
 
     for key in keys:
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
-        img = img.reshape(1, 3*210*280) / 255
+        if K.image_dim_ordering() == 'tf':
+            img = np.swapaxes(img, 0, 1)
+            img = np.swapaxes(img, 1, 2)
+        # if 'th', leave as is
+
+        img /= 255
+        img = img.astype('float32')
         img = np.subtract(img, avg)
-        X_train = np.concatenate((X_train, img), axis=0)
+        X_train = np.concatenate((X_train, img), axis=4)
 
         affordances = [i for i in datum.float_data]
         affordances = np.array(affordances)
         affordances = affordances.reshape(1, 14)
+        affordances = affordances.astype('float32')
         Y_train = np.concatenate((Y_train, affordances), axis=0)
 
-    if K.image_dim_ordering() == 'th':
-        x_train = x_train.reshape(x_train.shape[0], 3, img_rows, img_cols)
-        x_test = x_test.reshape(x_test.shape[0], 3, img_rows, img_cols)
-        input_shape = (3, img_rows, img_cols)
-    else:
-        x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 3)
-        x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 3)
-        input_shape = (img_rows, img_cols, 3)
-
-    # resize 3x210x280
-    # subtract mean
-    # crop = 0, mirror = false
-    # shuffle
-
-    X_train = X_train.astype('float32')
-    Y_train = Y_train.astype('float32')
     return X_train, Y_train
 
 
@@ -78,7 +73,13 @@ def calc_average(db, keys):
         avg = np.add(avg*n, img) / (n+1)
         n = n+1
 
-    avg = avg.reshape(1, 3*210*280) / 255
+    if K.image_dim_ordering() == 'tf':
+        avg = np.swapaxes(avg, 0, 1)
+        avg = np.swapaxes(avg, 1, 2)
+    # if 'th', leave as is
+
+    avg /= 255
+    avg = avg.astype('float32')
     return avg
 
 def save_average(avg):

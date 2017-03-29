@@ -4,6 +4,7 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2
 from keras.optimizers import SGD
 import numpy as np
 from scipy.misc import imread, imresize, imsave
+from keras import backend as K
 
 # from convnetskeras.customlayers import crosschannelnormalization #, convolution2Dgroup, splittensor, Softmax4D
 # from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
@@ -17,7 +18,10 @@ output_dict: Dict of feature layers, asked for in output_layers.
 """
 
 def AlexNet(weights_path=None):
-    inputs = Input(shape=(3, 280, 210)) # input size
+    if K.image_dim_ordering() == 'tf':
+        inputs = Input(shape=(210, 280, 3))
+    else:
+        inputs = Input(shape=(3, 210, 280))
 
     conv_1 = Convolution2D(96, 11, 11, subsample=(4,4), activation='relu',
                            name='conv_1')(inputs)
