@@ -26,8 +26,8 @@ def evaluate(db, keys, avg):
             img = np.swapaxes(img, 1, 2)
         # if 'th', leave as is
 
-        img /= 255
         img = img.astype('float32')
+        img = img / 255
         X = np.subtract(img, avg)
 
         Y = [i for i in datum.float_data]

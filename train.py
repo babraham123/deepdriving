@@ -48,8 +48,8 @@ def get_data(dbpath, keys, avg):
             img = np.swapaxes(img, 1, 2)
         # if 'th', leave as is
 
-        img /= 255
         img = img.astype('float32')
+        img = img / 255
         img = np.subtract(img, avg)
         X_train = np.concatenate((X_train, img), axis=4)
 
@@ -78,8 +78,8 @@ def calc_average(db, keys):
         avg = np.swapaxes(avg, 1, 2)
     # if 'th', leave as is
 
-    avg /= 255
     avg = avg.astype('float32')
+    avg = avg / 255
     return avg
 
 def save_average(avg):
