@@ -15,9 +15,9 @@ def evaluate(db, keys, avg):
     m = len(keys)
 
     model = load_model('deepdriving_model.h5')
-    error = np.zeros((0, 14))
+    error = np.empty((m, 14))
 
-    for key in keys:
+    for i, key in enumerate(keys):
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
@@ -31,12 +31,12 @@ def evaluate(db, keys, avg):
         X = np.subtract(img, avg)
 
         Y = [i for i in datum.float_data]
-        Y = M = np.array(Y)
+        Y = np.array(Y)
         Y = Y.reshape(1, 14)
         Y = Y.astype('float32')
         
         Y_predict = model.predict(X)
-        error = np.concatenate((error, (Y - Y_predict) ** 2), axis=0)
+        error[i] = (Y - Y_predict) ** 2
 
     mse = error.mean(axis=0)
 
