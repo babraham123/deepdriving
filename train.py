@@ -14,8 +14,8 @@ def train(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
-    batch_size = 64
-    stream_size = batch_size * 150 # ~10K images loaded at a time
+    batch_size = 32
+    stream_size = batch_size * 100 # ~10K images loaded at a time
 
     model = AlexNet()
 
@@ -32,14 +32,15 @@ def train(db, keys, avg):
 
 
 def get_data(dbpath, keys, avg):
+    n = len(keys)
     if K.image_dim_ordering() == 'tf':
-        X_train = np.zeros((210, 280, 3, 0))
+        X_train = np.empty((n, 210, 280, 3))
     else:
-        X_train = np.zeros((3, 210, 280, 0))
+        X_train = np.empty((n, 3, 210, 280))
 
-    Y_train = np.zeros((0, 14))
-
-    for key in keys:
+    Y_train = np.empty((n, 14))
+    
+    for i, key in enumerate(keys):
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
         # img.shape = 3x210x280
@@ -51,13 +52,13 @@ def get_data(dbpath, keys, avg):
         img = img.astype('float32')
         img = img / 255
         img = np.subtract(img, avg)
-        X_train = np.concatenate((X_train, img), axis=4)
+        X_train[i] = img
 
         affordances = [i for i in datum.float_data]
         affordances = np.array(affordances)
         affordances = affordances.reshape(1, 14)
         affordances = affordances.astype('float32')
-        Y_train = np.concatenate((Y_train, affordances), axis=0)
+        Y_train[i] = affordances
 
     return X_train, Y_train
 
