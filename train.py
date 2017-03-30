@@ -7,14 +7,14 @@ import h5py
 from keras import backend as K
 
 # nohup python train.py &
-# ps -ef | grep nohup 
+# ps -ef | grep train.py
 # kill UID 
 
 def train(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
-    batch_size = 32
+    batch_size = 64
     stream_size = batch_size * 100 # ~10K images loaded at a time
 
     model = AlexNet()
