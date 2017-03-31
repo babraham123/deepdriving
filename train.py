@@ -8,21 +8,23 @@ from keras import backend as K
 
 # nohup python train.py &
 # ps -ef | grep train.py
-# kill UID 
+# kill UID
+
 
 def train(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
     batch_size = 64
-    stream_size = batch_size * 100 # ~10K images loaded at a time
+    stream_size = batch_size * 100  # ~10K images loaded at a time
 
     model = AlexNet()
 
     for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i+stream_size)], avg)
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
         model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1)
 
+    # requires adam optimizer
     # model.fit(X_train, Y_train,
     #       batch_size=64, nb_epoch=4700, verbose=1,
     #       validation_data=(X_test, Y_test))
@@ -39,7 +41,7 @@ def get_data(dbpath, keys, avg):
         X_train = np.empty((n, 3, 210, 280))
 
     Y_train = np.empty((n, 14))
-    
+
     for i, key in enumerate(keys):
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
@@ -70,9 +72,9 @@ def calc_average(db, keys):
     for key in keys:
         datum = caffe_pb2.Datum.FromString(db.get(key))
         img = caffe.io.datum_to_array(datum)
-        
-        avg = np.add(avg*n, img) / (n+1)
-        n = n+1
+
+        avg = np.add(avg * n, img) / (n + 1)
+        n = n + 1
 
     if K.image_dim_ordering() == 'tf':
         avg = np.swapaxes(avg, 0, 1)
@@ -83,13 +85,15 @@ def calc_average(db, keys):
     avg = avg / 255
     return avg
 
+
 def save_average(avg):
     h5f = h5py.File('deepdriving_average.h5', 'w')
     h5f.create_dataset('average', data=avg)
     h5f.close()
-    
+
+
 def load_average():
-    h5f = h5py.File('deepdriving_average.h5','r')
+    h5f = h5py.File('deepdriving_average.h5', 'r')
     avg = h5f['average'][:]
     h5f.close()
     return avg
@@ -112,5 +116,3 @@ if __name__ == "__main__":
         f.write(model.to_json())
 
     db.close()
-
-

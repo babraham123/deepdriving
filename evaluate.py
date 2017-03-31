@@ -1,53 +1,27 @@
-from alexnet import AlexNet
-import caffe
-from caffe.proto import caffe_pb2
-import plyvel
-import numpy as np
-import h5py
-from keras.models import load_model
-from keras import backend as K
+from train import *
 
 # nohup python evaluate.py &
-# ps -ef | grep nohup 
-# kill UID 
+# ps -ef | grep evaluate.py
+# kill UID
+
 
 def evaluate(db, keys, avg):
     m = len(keys)
+    # epochs = 19
+    # iterations = 140000
+    batch_size = 64
+    stream_size = batch_size * 100  # ~10K images loaded at a time
 
     model = load_model('deepdriving_model.h5')
     error = np.empty((m, 14))
 
-    for i, key in enumerate(keys):
-        datum = caffe_pb2.Datum.FromString(db.get(key))
-        img = caffe.io.datum_to_array(datum)
-        # img.shape = 3x210x280
-        if K.image_dim_ordering() == 'tf':
-            img = np.swapaxes(img, 0, 1)
-            img = np.swapaxes(img, 1, 2)
-        # if 'th', leave as is
-
-        img = img.astype('float32')
-        img = img / 255
-        X = np.subtract(img, avg)
-
-        Y = [i for i in datum.float_data]
-        Y = np.array(Y)
-        Y = Y.reshape(1, 14)
-        Y = Y.astype('float32')
-        
-        Y_predict = model.predict(X)
-        error[i] = (Y - Y_predict) ** 2
+    for i in range(0, m, stream_size):
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        Y_predict = model.predict(X_batch, batch_size=batch_size, verbose=1)
+        error[i:(i + stream_size)] = (Y_batch - Y_predict) ** 2
 
     mse = error.mean(axis=0)
-
     return mse
-
-
-def load_average():
-    h5f = h5py.File('deepdriving_average.h5','r')
-    avg = h5f['average'][:]
-    h5f.close()
-    return avg
 
 
 if __name__ == "__main__":
