@@ -38,17 +38,17 @@ if __name__ == "__main__":
 
     db.close()
 
-# datum.add_float_data(shared->angle);
-# datum.add_float_data(shared->toMarking_L);
-# datum.add_float_data(shared->toMarking_M);
-# datum.add_float_data(shared->toMarking_R);
-# datum.add_float_data(shared->dist_L);
-# datum.add_float_data(shared->dist_R);
-# datum.add_float_data(shared->toMarking_LL);
-# datum.add_float_data(shared->toMarking_ML);
-# datum.add_float_data(shared->toMarking_MR);
-# datum.add_float_data(shared->toMarking_RR);
-# datum.add_float_data(shared->dist_LL);
-# datum.add_float_data(shared->dist_MM);
-# datum.add_float_data(shared->dist_RR);
-# datum.add_float_data(shared->fast);
+# angle);
+# toMarking_L);
+# toMarking_M);
+# toMarking_R);
+# dist_L);
+# dist_R);
+# toMarking_LL);
+# toMarking_ML);
+# toMarking_MR);
+# toMarking_RR);
+# dist_LL);
+# dist_MM);
+# dist_RR);
+# fast);

@@ -56,7 +56,7 @@ def get_data(db, keys, avg):
         img = np.subtract(img, avg)
         X_train[i] = img
 
-        affordances = [i for i in datum.float_data]
+        affordances = [j for j in datum.float_data]
         affordances = np.array(affordances)
         affordances = affordances.reshape(1, 14)
         affordances = affordances.astype('float32')
