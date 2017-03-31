@@ -33,7 +33,7 @@ def train(db, keys, avg):
     return model
 
 
-def get_data(dbpath, keys, avg):
+def get_data(db, keys, avg):
     n = len(keys)
     if K.image_dim_ordering() == 'tf':
         X_train = np.empty((n, 210, 280, 3))
