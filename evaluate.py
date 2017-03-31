@@ -1,4 +1,5 @@
 from train import *
+from keras.models import load_model
 
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
