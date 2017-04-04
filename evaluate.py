@@ -13,7 +13,7 @@ def evaluate(db, keys, avg):
     batch_size = 64
     stream_size = batch_size * 100  # ~10K images loaded at a time
 
-    model = load_model('deepdriving_model.h5')
+    model = load_model('deepdriving_model_rand.h5')
     error = np.empty((m, 14))
 
     for i in range(0, m, stream_size):
