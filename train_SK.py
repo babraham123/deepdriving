@@ -22,7 +22,7 @@ def train(db, keys, avg):
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=2)
 
     # requires adam optimizer
     # model.fit(X_train, Y_train,

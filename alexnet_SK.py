@@ -41,18 +41,18 @@ def AlexNet(weights_path=None):
     conv_3 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_3)
     #conv_3 = crosschannelnormalization()(conv_3)
     conv_3 = ZeroPadding2D((1, 1))(conv_3)
-    conv_3 = Convolution2D(384, 3, 3, activation='relu',kernel_initializer='normal',bias_initializer='zeros', name='conv_3')(conv_3)
+    conv_3 = Convolution2D(384, 3, 3, activation='relu', kernel_initializer='normal', bias_initializer='zeros', name='conv_3')(conv_3)
 
     conv_4 = ZeroPadding2D((1,1))(conv_3)
     # split unnecessary on modern GPUs, no stride
 
     # bias_filler constant value changes to 1 here in the actual code 
-    conv_4 = Convolution2D(384, 3, 3, activation="relu",kernel_initializer='normal',bias_initializer='ones', name='conv_4')(conv_4)
+    conv_4 = Convolution2D(384, 3, 3, activation="relu", kernel_initializer='normal', bias_initializer='ones', name='conv_4')(conv_4)
 
-    #conv_5 = ZeroPadding2D((1,1))(conv_4)    
+    conv_5 = ZeroPadding2D((1,1))(conv_4)    
     # split unnecessary on modern GPUs, no stride
     # bias_filler constant value changes to 1 here in the actual code 
-    conv_5 = Convolution2D(256, 3, 3, activation="relu",kernel_initializer='normal',bias_initializer='ones',name='conv_5')(conv_5)
+    conv_5 = Convolution2D(256, 3, 3, activation="relu", kernel_initializer='normal', bias_initializer='ones', name='conv_5')(conv_5)
     
     dense_1 = MaxPooling2D((3, 3), strides=(2,2), name="convpool_5")(conv_5)
 
