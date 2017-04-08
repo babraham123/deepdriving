@@ -1,4 +1,4 @@
-from alexnet_SK import AlexNet
+from alexnet_lrn import AlexNet
 import caffe
 from caffe.proto import caffe_pb2
 import plyvel
@@ -99,16 +99,26 @@ def load_average():
     return avg
 
 
+def save_keys(keys):
+    with open('keys.txt', 'w') as f:
+        f.writelines(["%s\n" % key for key in keys])
+
+
+def load_keys():
+    keys = []
+    with open('keys.txt', 'r') as f:
+        keys = [line.strip() for line in f]
+    return keys
+
+
 if __name__ == "__main__":
     dbpath = '../TORCS_Training_1F/'
     db = plyvel.DB(dbpath)
-    keys = []
-    for key, value in db:
-        keys.append(key)
+    keys = load_keys()
 
     #avg = calc_average(db, keys)
     #save_average(avg)
-    avg = load_average() 
+    avg = load_average()
     model = train(db, keys, avg)
 
     model.save('deepdriving_model_LRN.h5')

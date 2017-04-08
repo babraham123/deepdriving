@@ -1,4 +1,4 @@
-from alexnet_SK import AlexNet
+from alexnet import AlexNet
 import caffe
 from caffe.proto import caffe_pb2
 import plyvel
@@ -8,6 +8,7 @@ from keras import backend as K
 
 # nohup python train.py &
 # ps -ef | grep train.py
+# tail -f nohup.out
 # kill UID
 
 
@@ -28,7 +29,7 @@ def train(db, keys, avg):
     # model.fit(X_train, Y_train,
     #       batch_size=64, nb_epoch=4700, verbose=1,
     #       validation_data=(X_test, Y_test))
-    # max_iter = #epochs * (training set/training_batch_size) 
+    # max_iter = #epochs * (training set/training_batch_size)
 
     return model
 
@@ -99,12 +100,22 @@ def load_average():
     return avg
 
 
+def save_keys(keys):
+    with open('keys.txt', 'w') as f:
+        f.writelines(["%s\n" % key for key in keys])
+
+
+def load_keys():
+    keys = []
+    with open('keys.txt', 'r') as f:
+        keys = [line.strip() for line in f]
+    return keys
+
+
 if __name__ == "__main__":
     dbpath = '../TORCS_Training_1F/'
     db = plyvel.DB(dbpath)
-    keys = []
-    for key, value in db:
-        keys.append(key)
+    keys = load_keys()
 
     avg = calc_average(db, keys)
     save_average(avg)
