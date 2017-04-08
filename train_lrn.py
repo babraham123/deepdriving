@@ -65,33 +65,6 @@ def get_data(db, keys, avg):
     return X_train, Y_train
 
 
-def calc_average(db, keys):
-    avg = np.zeros((3, 210, 280))
-    n = 0
-
-    for key in keys:
-        datum = caffe_pb2.Datum.FromString(db.get(key))
-        img = caffe.io.datum_to_array(datum)
-
-        avg = np.add(avg * n, img) / (n + 1)
-        n = n + 1
-
-    if K.image_dim_ordering() == 'tf':
-        avg = np.swapaxes(avg, 0, 1)
-        avg = np.swapaxes(avg, 1, 2)
-    # if 'th', leave as is
-
-    avg = avg.astype('float32')
-    avg = avg / 255
-    return avg
-
-
-def save_average(avg):
-    h5f = h5py.File('deepdriving_average.h5', 'w')
-    h5f.create_dataset('average', data=avg)
-    h5f.close()
-
-
 def load_average():
     h5f = h5py.File('deepdriving_average.h5', 'r')
     avg = h5f['average'][:]
@@ -99,14 +72,9 @@ def load_average():
     return avg
 
 
-def save_keys(keys):
-    with open('keys.txt', 'w') as f:
-        f.writelines(["%s\n" % key for key in keys])
-
-
 def load_keys():
     keys = []
-    with open('keys.txt', 'r') as f:
+    with open('keys.txt', 'rb') as f:
         keys = [line.strip() for line in f]
     return keys
 
@@ -116,13 +84,11 @@ if __name__ == "__main__":
     db = plyvel.DB(dbpath)
     keys = load_keys()
 
-    #avg = calc_average(db, keys)
-    #save_average(avg)
     avg = load_average()
     model = train(db, keys, avg)
 
-    model.save('deepdriving_model_LRN.h5')
-    model.save_weights('deepdriving_weights_LRN.h5')
+    model.save('deepdriving_model_lrn.h5')
+    model.save_weights('deepdriving_weights_lrn.h5')
     #with open('deepdriving_model.json', 'w') as f:
     #    f.write(model.to_json())
 

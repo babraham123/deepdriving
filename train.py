@@ -100,14 +100,21 @@ def load_average():
     return avg
 
 
+def find_keys(db):
+    keys = []
+    for key, value in db:
+        keys.append(key)
+    return keys
+
+
 def save_keys(keys):
-    with open('keys.txt', 'w') as f:
-        f.writelines(["%s\n" % key for key in keys])
+    with open('keys.txt', 'wb') as f:
+        f.writelines([b'%s\n' % key for key in keys])
 
 
 def load_keys():
     keys = []
-    with open('keys.txt', 'r') as f:
+    with open('keys.txt', 'rb') as f:
         keys = [line.strip() for line in f]
     return keys
 
