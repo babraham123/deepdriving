@@ -22,7 +22,7 @@ def train(db, keys, avg):
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=2)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1)
 
     # requires adam optimizer
     # model.fit(X_train, Y_train,
@@ -106,13 +106,14 @@ if __name__ == "__main__":
     for key, value in db:
         keys.append(key)
 
-    avg = calc_average(db, keys)
-    save_average(avg)
+    #avg = calc_average(db, keys)
+    #save_average(avg)
+    avg = load_average() 
     model = train(db, keys, avg)
 
-    model.save('deepdriving_model.h5')
-    model.save_weights('deepdriving_weights.h5')
-    with open('deepdriving_model.json', 'w') as f:
-        f.write(model.to_json())
+    model.save('deepdriving_model_LRN.h5')
+    model.save_weights('deepdriving_weights_LRN.h5')
+    #with open('deepdriving_model.json', 'w') as f:
+    #    f.write(model.to_json())
 
     db.close()

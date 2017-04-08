@@ -92,3 +92,5 @@ ENV/
 *.out
 *.h5
 graph/
+
+*~
