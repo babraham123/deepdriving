@@ -1,7 +1,7 @@
 from keras.models import Sequential, Model
 from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, Input #, merge
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 import numpy as np
 from scipy.misc import imread, imresize, imsave
 from keras import backend as K
@@ -62,14 +62,18 @@ def AlexNet(weights_path=None):
 
     # output: 14 affordances, gaussian std 0.01
     dense_4 = Dense(14, activation='sigmoid', name='dense_4')(dense_4)
+#    dense_4 = Dense(14, activation='linear', name='dense_4')(dense_4)
+
 
     model = Model(input=inputs, output=dense_4)
+    model.summary()
 
     if weights_path:
         model.load_weights(weights_path)
 
     sgd = SGD(lr=0.01, decay=0.0005, momentum=0.9) # nesterov=True)
+    adam = Adam()    
     # caffe: euclidean loss
-    model.compile(optimizer=sgd, loss='mean_squared_error')
+    model.compile(optimizer=adam, loss='mse')
 
     return model
