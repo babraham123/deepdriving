@@ -21,9 +21,9 @@ output_dict: Dict of feature layers, asked for in output_layers.
 
 def AlexNet(weights_path=None):
     if K.image_dim_ordering() == 'tf':
-        inputs = Input(shape=(210, 280, 3))
+        inputs = Input(shape=(64, 64, 3))
     else:
-        inputs = Input(shape=(3, 210, 280))
+        inputs = Input(shape=(3, 64, 64))
 
     conv_1 = Convolution2D(96, (11, 11), subsample=(4,4), activation='relu',  kernel_initializer='normal', bias_initializer='zeros', name='conv_1')(inputs)
     # initial weights filler? gaussian, std 0.01

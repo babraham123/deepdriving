@@ -84,7 +84,7 @@ if __name__ == "__main__":
     db = plyvel.DB(dbpath)
     keys = load_keys()
 
-    avg = load_average()
+    avg = load_average() 
     model = train(db, keys, avg)
 
     model.save('deepdriving_model_lrn.h5')
