@@ -2,6 +2,7 @@ import numpy as np
 from keras import backend as K
 from keras.models import load_model
 import h5py
+from controller import controller
 
 
 class Agent(object):
@@ -9,6 +10,26 @@ class Agent(object):
         self.model = load_model('deepdriving_model_rand.h5')
         self.average = self.load_average()
         self.is_tf = (K.image_dim_ordering() == 'tf')
+        self.steering_record = [0, 0, 0, 0, 0]
+        self.prev_affordances = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30.0, 0, 30.0, 0]
+
+        road_width = 8.0
+        coe_steer = 1.0
+        lane_change = 0
+        steering_head = 0
+
+        left_clear = 0
+        right_clear = 0
+        left_timer = 0
+        right_timer = 0
+        timer_set = 60
+        pre_dist_L = 60.0
+        pre_dist_R = 60.0
+        steer_trend
+        goto_lane = 0
+
+        self.state = [road_width, steering_head, timer_set, lane_change, speed, goto_lane]
+        # road_width, steering_head, timer_set, lane_change, speed = state
 
     def load_average():
         h5f = h5py.File('deepdriving_average.h5', 'r')
@@ -18,14 +39,10 @@ class Agent(object):
 
     def preprocess_image(self, vision):
         im = np.resize(vision, (210, 280, 3))
-        # crop, zero pad, etc 
+        # crop, zero pad, etc
         if self.is_tf is False:
             im = np.swapaxes(im, 0, 1)
         return im
-
-    def controller(self, affordances):
-        action = [0.0, 0.0]
-        return action
 
     def act(self, ob, reward, done, vision_on):
         '''
@@ -55,7 +72,8 @@ class Agent(object):
 
             im = self.preprocess_image(vision)
             affordances = self.model.predict(im)
-            action = self.controller(affordances)
+            action = controller(affordances, self.prev_affordances, self.state)
+            self.prev_affordances = affordances
 
         else:
             focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel = ob
