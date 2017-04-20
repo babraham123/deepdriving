@@ -1,5 +1,5 @@
 import numpy as np
-from keras.layers.core import  Lambda, Merge
+from keras.layers import  Lambda, Merge
 from keras.layers.convolutional import Convolution2D
 from keras import backend as K
 

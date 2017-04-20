@@ -1,0 +1,110 @@
+import caffe
+from caffe.proto import caffe_pb2
+import plyvel
+import numpy as np
+import h5py
+from keras import backend as K
+from keras.optimizers import Adam
+from convnets import convnet
+import itertools
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# nohup python train.py &
+# ps -ef | grep train.py
+# kill UID
+
+
+def train(db, keys, avg):
+    m = len(keys)
+    # epochs = 19
+    # iterations = 140000
+    batch_size = 64
+    stream_size = batch_size * 100  # ~10K images loaded at a time
+    K.set_image_dim_ordering('th')
+    model = convnet('alexnet', weights_path = 'alexnet_weights.h5')
+    model.summary()#AlexNet()
+    #model.load_weights('alexnet_weights.h5')
+    adam = Adam()
+    model.compile(optimizer=adam, loss='mse')
+    for i in range(0, m, stream_size):
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=60, verbose=2)
+
+    # requires adam optimizer
+    # model.fit(X_train, Y_train,
+    #       batch_size=64, nb_epoch=4700, verbose=1,
+    #       validation_data=(X_test, Y_test))
+    # max_iter = #epochs * (training set/training_batch_size) 
+
+    return model
+
+
+def get_data(db, keys, avg):
+    n = len(keys)
+    if K.image_dim_ordering() == 'tf':
+        print('set to tf ordering')
+        X_train = np.empty((n, 227, 227, 3))
+    else:
+        print('set to th ordering')
+        X_train = np.empty((n, 3, 227, 227))
+
+    Y_train = np.empty((n, 14))
+
+    for i, key in enumerate(keys):
+        datum = caffe_pb2.Datum.FromString(db.get(key))
+        img = caffe.io.datum_to_array(datum)
+
+
+        
+        img = img.transpose(1,2,0)
+        #print(img.shape)
+        img2 = Image.fromarray(img,'RGB')
+        img2 = img2.resize((227, 227), Image.ANTIALIAS)
+        img =  np.asarray(img2)
+        
+        img = img.transpose(2,1,0)
+        #plt.imshow(img)
+
+        img = img.astype('float32')
+        img = img / 255
+        #img = np.subtract(img, avg)
+        X_train[i] = img
+
+        affordances = [j for j in datum.float_data]
+        affordances = np.array(affordances)
+        affordances = affordances.reshape(1, 14)
+        affordances = affordances.astype('float32')
+        Y_train[i] = affordances
+
+    return X_train, Y_train
+
+
+def load_average():
+    h5f = h5py.File('deepdriving_average.h5', 'r')
+    avg = h5f['average'][:]
+    h5f.close()
+    return avg
+
+
+def load_keys():
+    keys = []
+    with open('keys.txt', 'rb') as f:
+        keys = [line.strip() for line in f]
+    return keys
+
+
+if __name__ == "__main__":
+    dbpath = '/home/asankar/deepdrive/TORCS_Training_1F'
+    db = plyvel.DB(dbpath)
+    keys = load_keys()
+
+    avg = load_average() 
+    model = train(db, keys, avg)
+
+    model.save('deepdriving_model_lrn.h5')
+    model.save_weights('deepdriving_weights_lrn.h5')
+    #with open('deepdriving_model.json', 'w') as f:
+    #    f.write(model.to_json())
+
+    db.close()
