@@ -3,28 +3,44 @@ import math
 
 def controller(affordances, prev_affordances, steering_record, state):
     # a controller processes the cnn output and get the optimal steering, acceleration/brake
+    # torcs_run_3lane.cpp lines 360 - 564
 
-    angle = affordances[0]
-    toMarking_L = affordances[1]
-    toMarking_M = affordances[2]
-    toMarking_R = affordances[3]
-    dist_L = affordances[4]
-    dist_R = affordances[5]
-    toMarking_LL = affordances[6]
-    toMarking_ML = affordances[7]
-    toMarking_MR = affordances[8]
-    toMarking_RR = affordances[9]
-    dist_LL = affordances[10]
-    dist_MM = affordances[11]
-    dist_RR = affordances[12]
-    fast = affordances[13]
+    # TODO:
+    road_width, steering_head, timer_set, lane_change, speed, goto_lane = state
+
+    # de-normalize, average shift data
+    angle = (affordances[0] - 0.5) * 1.1
+
+    toMarking_L = (affordances[1] - 1.34445) * 5.6249
+    toMarking_M = (affordances[2] - 0.39091) * 6.8752
+    toMarking_R = (affordances[3] + 0.34445) * 5.6249
+
+    dist_L = (affordances[4] - 0.12) * 95
+    dist_R = (affordances[5] - 0.12) * 95
+
+    toMarking_LL = (affordances[6] - 1.48181) * 6.8752
+    toMarking_ML = (affordances[7] - 0.98) * 6.25
+    toMarking_MR = (affordances[8] - 0.02) * 6.25
+    toMarking_RR = (affordances[9] + 0.48181) * 6.8752
+
+    dist_LL = (affordances[10] - 0.12) * 95
+    dist_MM = (affordances[11] - 0.12) * 95
+    dist_RR = (affordances[12] - 0.12) * 95
+
+    if (affordances[13] > 0.5):
+        fast = 1
+    else:
+        fast = 0
+
+    if (goto_lane == 2 and toMarking_LL < -8):
+        toMarking_LL = -7.5  # correct error output
+    if (goto_lane == 1 and toMarking_RR > 8):
+        toMarking_RR = 7.5
 
     slow_down = 100.0
     pre_dist_L = prev_affordances[10]
     pre_dist_R = prev_affordances[12]
-
-    # TODO:
-    road_width, steering_head, timer_set, lane_change, speed = state
+    # end of pre-processing
 
     if (pre_dist_L < 20.0 and dist_LL < 20.0):  # left lane is occupied or not
         left_clear = 0

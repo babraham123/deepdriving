@@ -6,8 +6,9 @@ import numpy as np
 import h5py
 from keras import backend as K
 
-# nohup python train.py &
-# ps -ef | grep train.py
+# nohup python train_lrn.py &
+# ps -ef | grep train_lrn.py
+# tail -f nohup.out
 # kill UID
 
 

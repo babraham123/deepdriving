@@ -1,12 +1,23 @@
 sudo apt-get update
 
+# if issues with boot
+# Ctrl + Alt + F3
+sudo apt-get install ubuntu-session
+sudo apt-get install lightdm # Select lightdm
+sudo dpkg-reconfigure lightdm # Select lightdm
+sudo reboot
+
+
 CUDA
 become a member of the Nvidia developer community
 wget URL
 start computer in low graphics mode
 sudo apt-get purge nvidia*
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
 sudo ubuntu-drivers devices
-sudo apt-get install nvidia-367
+sudo apt-get install nvidia-381
+sudo ldconfig
 
 CUDNN
 wget URL
