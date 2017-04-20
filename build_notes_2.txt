@@ -1,0 +1,11 @@
+
+# Create ubuntu boot usb with Mac
+hdiutil convert /path/to/ubuntu.iso -format UDRW -o /path/to/target.img
+diskutil list
+# plug in usb
+diskutil list
+diskutil unmountDisk /dev/diskN
+sudo dd if=/path/to/downloaded.img of=/dev/rdiskN bs=1m
+diskutil eject /dev/diskN
+
+

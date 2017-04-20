@@ -1,9 +1,9 @@
 from keras.applications import InceptionV3
 from keras.models import Model
-from keras.layers import Dense, GlobalAveragePooling2D
+from keras.layers import Dense, GlobalAveragePooling2D, LSTM
 
 
-def Inception():
+def InceptionLSTM():
     # create the base pre-trained model
     base_model = InceptionV3(weights='imagenet', include_top=False)
 
@@ -12,8 +12,8 @@ def Inception():
     x = GlobalAveragePooling2D()(x)
     # x = GlobalMaxPooling2D()(x)
 
-    x = Dense(400, activation='relu')(x)
-    x = Dense(400, activation='relu')(x)
+    x = LSTM(400, return_sequences=True)(x)  # stateful=True
+    x = LSTM(400)(x)  # stateful=True
     # 4096
 
     predictions = Dense(14, activation='sigmoid')(x)
