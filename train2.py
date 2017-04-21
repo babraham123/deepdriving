@@ -13,14 +13,14 @@ def train2(db, keys, avg):
     # epochs = 19
     # iterations = 140000
     batch_size = 64
-    stream_size = batch_size * 100  # ~10K images loaded at a time
+    stream_size = batch_size * 20  # ~1K images loaded at a time
 
     model = Inception((210, 280, 3))
     # input shape must be within [139, 299]
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=2)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, epochs=1, verbose=2)
 
     return model
 
