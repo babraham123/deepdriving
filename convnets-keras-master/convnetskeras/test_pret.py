@@ -4,7 +4,9 @@ import plyvel
 import numpy as np
 import h5py
 from keras import backend as K
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
+from keras.layers import Dense, Dropout
+from keras.models import Model
 from convnets import convnet
 import itertools
 from PIL import Image
@@ -16,26 +18,35 @@ import matplotlib.pyplot as plt
 
 
 def train(db, keys, avg):
-    m = len(keys)
-    # epochs = 19
-    # iterations = 140000
-    batch_size = 64
-    stream_size = batch_size * 100  # ~10K images loaded at a time
-    K.set_image_dim_ordering('th')
-    model = convnet('alexnet', weights_path = 'alexnet_weights.h5')
-    model.summary()#AlexNet()
-    #model.load_weights('alexnet_weights.h5')
-    adam = Adam()
-    model.compile(optimizer=adam, loss='mse')
-    for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=60, verbose=2)
+    m = len(keys[1:32000])
 
-    # requires adam optimizer
-    # model.fit(X_train, Y_train,
-    #       batch_size=64, nb_epoch=4700, verbose=1,
-    #       validation_data=(X_test, Y_test))
-    # max_iter = #epochs * (training set/training_batch_size) 
+    batch_size = 320
+    stream_size = batch_size * 10  # ~10K images loaded at a time
+    K.set_image_dim_ordering('th')
+    base_model = convnet('alexnet', weights_path = 'alexnet_weights.h5')
+    for layer in base_model.layers:
+        layer.trainable = False
+        
+    x = base_model.output
+    x = Dense(256, activation='relu',name='fc1')(x)
+    #x = Dropout(0.5)(x)
+    x = Dense(14, activation='linear',name='fc2')(x)
+
+    model = Model(input=base_model.input, output=x)
+    model.summary()#AlexNet()
+
+
+
+    adam = Adam(lr = .05)
+    model.compile(optimizer=adam, loss='mse')
+    #sgd = SGD(lr=0.05, decay=0.0005, momentum=0.9)    
+    #model.compile(optimizer=sgd, loss='mse')
+
+    for i in range(0, m, stream_size):
+        print(i, 'iteration')
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=20, verbose=2)
+
 
     return model
 
