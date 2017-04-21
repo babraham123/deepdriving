@@ -2,6 +2,8 @@ from keras.models import Sequential, Model
 from keras.layers import Flatten, Dense, Dropout, Reshape, Permute, Activation, \
     Input, merge
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from keras.layers.normalization import LRN2D
+from keras.utils.layer_utils import convert_all_kernels_in_model
 from keras.optimizers import SGD
 import numpy as np
 from scipy.misc import imread, imresize, imsave
@@ -9,7 +11,7 @@ from scipy.misc import imread, imresize, imsave
 from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, \
     splittensor, Softmax4D
 from convnetskeras.imagenet_tool import synset_to_id, id_to_synset,synset_to_dfs_ids
-
+from keras import backend as K
 
 def convnet(network, weights_path=None, heatmap=False,
             trainable=None):
@@ -156,7 +158,7 @@ def VGG_19(weights_path=None,heatmap=False):
     if heatmap:
         model.add(ZeroPadding2D((1,1),input_shape=(3,None,None)))
     else:
-        model.add(ZeroPadding2D((1,1),input_shape=(3,224,224)))
+        model.add(ZeroPadding2D((1,1),input_shape=(3,210,280)))
     model.add(Convolution2D(64, 3, 3, activation='relu', name='conv1_1'))
     model.add(ZeroPadding2D((1,1)))
     model.add(Convolution2D(64, 3, 3, activation='relu', name='conv1_2'))
@@ -213,31 +215,31 @@ def VGG_19(weights_path=None,heatmap=False):
         model.add(Activation("softmax"))
 
     if weights_path:
-        model.load_weights(weights_path)
+       model.load_weights(weights_path)
 
     return model
 
 
 
 def AlexNet(weights_path=None, heatmap=False):
-    if heatmap:
-        inputs = Input(shape=(3,None,None))
-    else:
-        inputs = Input(shape=(3,227,227))
+    K.set_image_dim_ordering('th')
+    inputs = Input(shape=(3,227,227))
 
     conv_1 = Convolution2D(96, 11, 11,subsample=(4,4),activation='relu',
                            name='conv_1')(inputs)
 
     conv_2 = MaxPooling2D((3, 3), strides=(2,2))(conv_1)
-    conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
+    #conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
+    conv_2 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_2)
     conv_2 = ZeroPadding2D((2,2))(conv_2)
     conv_2 = merge([
         Convolution2D(128,5,5,activation="relu",name='conv_2_'+str(i+1))(
             splittensor(ratio_split=2,id_split=i)(conv_2)
         ) for i in range(2)], mode='concat',concat_axis=1,name="conv_2")
-
+    
     conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
-    conv_3 = crosschannelnormalization()(conv_3)
+    #conv_3 = crosschannelnormalization()(conv_3)
+    conv_3 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_3)
     conv_3 = ZeroPadding2D((1,1))(conv_3)
     conv_3 = Convolution2D(384,3,3,activation='relu',name='conv_3')(conv_3)
 
@@ -255,25 +257,40 @@ def AlexNet(weights_path=None, heatmap=False):
 
     dense_1 = MaxPooling2D((3, 3), strides=(2,2),name="convpool_5")(conv_5)
 
-    if heatmap:
-        dense_1 = Convolution2D(4096,6,6,activation="relu",name="dense_1")(dense_1)
-        dense_2 = Convolution2D(4096,1,1,activation="relu",name="dense_2")(dense_1)
-        dense_3 = Convolution2D(1000, 1,1,name="dense_3")(dense_2)
-        prediction = Softmax4D(axis=1,name="softmax")(dense_3)
-    else:
-        dense_1 = Flatten(name="flatten")(dense_1)
-        dense_1 = Dense(4096, activation='relu',name='dense_1')(dense_1)
-        dense_2 = Dropout(0.5)(dense_1)
-        dense_2 = Dense(4096, activation='relu',name='dense_2')(dense_2)
-        dense_3 = Dropout(0.5)(dense_2)
-        dense_3 = Dense(1000,name='dense_3')(dense_3)
-        prediction = Activation("softmax",name="softmax")(dense_3)
+
+
+    dense_1 = Flatten(name="flatten")(dense_1)
+    dense_1 = Dense(4096, activation='relu',name='dense_1')(dense_1)
+    dense_2 = Dropout(0.5)(dense_1)
+    dense_2 = Dense(4096, activation='relu',name='dense_2')(dense_2)
+    dense_3 = Dropout(0.5)(dense_2)
+    dense_3 = Dense(1000,name='dense_3')(dense_3)
+    prediction = Activation("softmax", name = "softmax")(dense_3)
 
 
     model = Model(input=inputs, output=prediction)
 
     if weights_path:
-        model.load_weights(weights_path)
+       model.load_weights(weights_path)
+    '''
+    model.layers.pop()
+    #model.params.pop()
+    model.layers.pop()
+    model.layers.pop()
+    #model.params.pop()
+    dense_3 = Dropout(0.5)(dense_2)
+    dense_4 = Dense(256, activation='relu',kernel_initializer='normal', bias_initializer='zeros',name='dense_3')(dense_3)
+    dense_4 = Dropout(0.5)(dense_4)
+
+    # output: 14 affordances, gaussian std 0.01
+    dense_4 = Dense(14, activation='sigmoid',kernel_initializer='normal', bias_initializer='zeros', name='dense_4')(dense_4)
+    #dense_3 = Dense(14,name='dense_3')(dense_3)
+    #prediction = Activation("sigmoid", name = "sigmpod")(dense_3)
+
+    model_new = Model(input=inputs, output=dense_4)
+    '''
+    if K.backend() == 'tensorflow':
+        model =convert_all_kernels_in_model(model)
 
     return model
 

@@ -12,6 +12,7 @@ from keras.layers.normalization import LRN2D
 from keras.optimizers import Adam
 import itertools
 from PIL import Image
+#from convnets-keras-master.convnetskeras.convnets import*
 # nenumerate(keys[0,10000])ohup python train.py &
 # ps -ef | grep train.py
 # kill UID
@@ -60,6 +61,7 @@ def train(db, keys, avg):
     model = Model(input=inputs, output=out)
     model.summary()
     
+    model.load_weights('alexnet_weights.h5') 
     adam = Adam()
     model.compile(optimizer=adam, loss='mse')
     
