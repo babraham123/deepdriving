@@ -1,16 +1,15 @@
 from keras.applications import InceptionV3
 from keras.models import Model
-from keras.layers import Dense, GlobalAveragePooling2D, LSTM
+from keras.layers import Dense, LSTM
 
 
-def InceptionLSTM():
+def InceptionLSTM(dim):
     # create the base pre-trained model
-    base_model = InceptionV3(weights='imagenet', include_top=False)
+    base_model = InceptionV3(weights='imagenet', include_top=False,
+                             input_shape=dim, pooling='avg')  # max
 
     # global spatial average pooling layer
     x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    # x = GlobalMaxPooling2D()(x)
 
     x = LSTM(400, return_sequences=True)(x)  # stateful=True
     x = LSTM(400)(x)  # stateful=True

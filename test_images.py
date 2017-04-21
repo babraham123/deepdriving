@@ -21,6 +21,7 @@ if __name__ == "__main__":
 
     savepath = '../train_images/'
 
+    # range(start=0, stop, step=1), stop is exclusive
     for i in range(1000):
         key = keys[i]
         datum = caffe_pb2.Datum.FromString(db.get(key))

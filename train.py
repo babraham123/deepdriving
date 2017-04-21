@@ -53,7 +53,7 @@ def get_data(db, keys, avg):
         # if 'th', leave as is
 
         img = img.astype('float32')
-        img = img / 255
+        img = img / 255.0
         img = np.subtract(img, avg)
         X_train[i] = img
 
@@ -83,7 +83,7 @@ def calc_average(db, keys):
     # if 'th', leave as is
 
     avg = avg.astype('float32')
-    avg = avg / 255
+    avg = avg / 255.0
     return avg
 
 

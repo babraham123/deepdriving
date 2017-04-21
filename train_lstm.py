@@ -1,27 +1,26 @@
 from train import *
-import keras
+from inception_lstm import InceptionLSTM
 
-# nohup python train_board.py &
-# tensorboard --logdir /home/asankar/deepdrive/deepdriving/graph 
-# http://aiml.me.cmu.edu:6006/
+# nohup python train.py &
 # ps -ef | grep train.py
+# tail -f nohup.out
 # kill UID
 
 
-def train(db, keys, avg):
+def train_lstm(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
     batch_size = 64
     stream_size = batch_size * 100  # ~10K images loaded at a time
 
-    model = AlexNet()
-    tbCallback = keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
-    tbCallback.set_model(model)
+    model = InceptionLSTM()
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=1, callbacks=[tbCallback])
+        # sort into sequences
+
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=2)
 
     return model
 
@@ -34,7 +33,7 @@ if __name__ == "__main__":
         keys.append(key)
 
     avg = load_average()
-    model = train(db, keys, avg)
+    model = train_lstm(db, keys, avg)
 
     model.save('deepdriving_model.h5')
     model.save_weights('deepdriving_weights.h5')
