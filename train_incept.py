@@ -19,7 +19,7 @@ else:
     dim = (3, 299, 299)
 
 
-def train_incept(db, keys, avg, mean_var):
+def train_incept(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
@@ -30,13 +30,13 @@ def train_incept(db, keys, avg, mean_var):
     # input shape must be within [139, 299]
 
     for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg, mean_var)
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
         model.fit(X_batch, Y_batch, batch_size=batch_size, epochs=1, verbose=2)
 
     return model
 
 
-def get_data(db, keys, avg, mean_var):
+def get_data(db, keys, avg):
     n = len(keys)
     if K.image_dim_ordering() == 'tf':
         X_train = np.empty((n, 210, 280, 3))
@@ -69,8 +69,9 @@ def get_data(db, keys, avg, mean_var):
 
         # PCA whitening
         # TODO::
-
         Y_train[i] = affordances
+
+    return X_train, Y_train
 
 
 def calc_output_mean_var(db, keys):
@@ -149,21 +150,23 @@ if __name__ == "__main__":
     dbpath = '../TORCS_Training_1F/'
     db = plyvel.DB(dbpath)
     keys = load_keys()
-
-    avg = calc_average(db, keys)
-    save_average(avg, 'average_no_scale.h5')
-
-    mean_var = calc_output_mean_var(db, keys)
-    save_average(mean_var, 'output_mean_var.h5')
-
-    print(np.mean(np.mean(avg, axis=0), axis=1))
-    print(mean_var)
-    exit()
+    avg = load_average('average_no_scale.h5')
+    # mean_var = load_average('output_mean_var.h5')
 
     if resize:
         avg = cv2.resize(avg, dim)  # bilinear
 
-    model = train_incept(db, keys, avg, mean_var)
+    model = train_incept(db, keys, avg)
     model.save('model_inception.h5')
 
     db.close()
+
+# output_mean_var
+# [[  1.05096394e-03  -6.10439122e+00   2.22679069e+00   6.01857480e+00
+#     6.55837606e+01   6.50148110e+01  -7.62196768e+00  -2.40765018e+00
+#     2.51720775e+00   7.66177475e+00   5.68282719e+01   4.57264860e+01
+#     5.64878142e+01   2.80581253e-01]
+#  [  1.10733842e-02   2.08471159e+00   3.13468153e+00   2.30695793e+00
+#     3.50281351e+02   3.65920679e+02   3.50163140e+00   1.85120518e+00
+#     1.74987999e+00   3.30746772e+00   5.80191632e+02   5.42373414e+02
+#     5.90709864e+02   2.01855413e-01]]

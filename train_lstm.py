@@ -1,4 +1,4 @@
-from train import *
+from train_incept import *
 from inception_lstm import InceptionLSTM
 
 # nohup python train.py &
