@@ -26,7 +26,7 @@ def train_incept(db, keys, avg):
     batch_size = 32
     stream_size = batch_size * 100  # ~1K images loaded at a time
 
-    model = Inception((210, 280, 3))
+    model = Inception((210, 280, 3), 4096)
     # input shape must be within [139, 299]
 
     for i in range(0, m, stream_size):

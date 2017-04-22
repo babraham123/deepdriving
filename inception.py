@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Dense
 
 
-def Inception(dim):
+def Inception(dim, hidden_units):
     # create the base pre-trained model
     base_model = InceptionV3(weights='imagenet', include_top=False,
                              input_shape=dim, pooling='avg')  # max
@@ -11,8 +11,8 @@ def Inception(dim):
     # global spatial average pooling layer
     x = base_model.output
 
-    x = Dense(400, activation='relu')(x)
-    x = Dense(400, activation='relu')(x)
+    x = Dense(hidden_units, activation='relu')(x)
+    x = Dense(hidden_units, activation='relu')(x)
     # 4096
 
     predictions = Dense(14, activation='sigmoid')(x)

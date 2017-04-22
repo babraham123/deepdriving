@@ -11,10 +11,10 @@ def train_lstm(db, keys, avg):
     m = len(keys)
     # epochs = 19
     # iterations = 140000
-    batch_size = 64
+    batch_size = 32
     stream_size = batch_size * 100  # ~10K images loaded at a time
 
-    model = InceptionLSTM()
+    model = InceptionLSTM(dim, 4096)
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)

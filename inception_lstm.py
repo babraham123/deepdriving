@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Dense, LSTM
 
 
-def InceptionLSTM(dim):
+def InceptionLSTM(dim, hidden_units):
     # create the base pre-trained model
     base_model = InceptionV3(weights='imagenet', include_top=False,
                              input_shape=dim, pooling='avg')  # max
@@ -11,8 +11,8 @@ def InceptionLSTM(dim):
     # global spatial average pooling layer
     x = base_model.output
 
-    x = LSTM(400, return_sequences=True)(x)  # stateful=True
-    x = LSTM(400)(x)  # stateful=True
+    x = LSTM(hidden_units, return_sequences=True)(x)  # stateful=True
+    x = LSTM(hidden_units)(x)  # stateful=True
     # 4096
 
     predictions = Dense(14, activation='sigmoid')(x)
