@@ -37,7 +37,7 @@ def train(db, keys, avg):
 
 
 
-    adam = Adam(lr = .05)
+    adam = Adam(lr = .01)
     model.compile(optimizer=adam, loss='mse')
     #sgd = SGD(lr=0.05, decay=0.0005, momentum=0.9)    
     #model.compile(optimizer=sgd, loss='mse')
