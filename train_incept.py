@@ -178,10 +178,7 @@ if __name__ == "__main__":
     db = plyvel.DB(dbpath)
     keys = load_keys()
     avg = load_average('average_no_scale.h5')
-
-    mean_std = calc_output_mean_std(db, keys)
-    save_average(mean_std, 'output_mean_std.h5')
-    # mean_std = load_average('output_mean_std.h5')
+    mean_std = load_average('output_mean_std.h5')
 
     if resize:
         avg = cv2.resize(avg, dim)  # bilinear
