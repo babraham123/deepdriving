@@ -7,16 +7,32 @@ from keras import backend as K
 from keras.optimizers import Adam, SGD
 from keras.layers import Dense, Dropout
 from keras.models import Model
+from keras.callbacks import TensorBoard,CSVLogger,ModelCheckpoint,EarlyStopping,ReduceLROnPlateau
 from convnets import convnet
 import itertools
 from PIL import Image
 import matplotlib.pyplot as plt
+import time
+start_time = time.time()
 
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID
 
 same_size = True
+model_num = 1
+logs_path = "/home/lkara/deepdrive/deepdriving/convnets-keras-master/convnetskeras/models/run%d/" % model_num
+model_filename = '/home/lkara/deepdrive/deepdriving/convnets-keras-master/convnetskeras/models/model%d.json' % model_num
+weights_filename = '/home/lkara/deepdrive/deepdriving/convnets-keras-master/convnetskeras/models/model%d.h5' % model_num
+csvlog_filename = '/home/lkara/deepdrive/deepdriving/convnets-keras-master/convnetskeras/models/model%d.csv' % model_num
+
+##  tensorboard --logdir /home/lkara/deepdrive/deepdriving/convnets-keras-master/convnetskeras/models/
+tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=True)
+csvlog = CSVLogger(csvlog_filename, separator=',', append=False )
+mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=True, save_weights_only=True, period=2)
+erlystp = EarlyStopping(monitor='val_mean_absolute_error',min_delta=1e-4,patience=10) 
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5)
+
 
 def train(db, keys, avg):
     m = len(keys[1:100000])
@@ -46,9 +62,11 @@ def train(db, keys, avg):
     for i in range(0, m, stream_size):
         print(i, 'iteration')
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=45, verbose=2)
-
-
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=65, validation_split=0.2, verbose=2, callbacks=[tbCallBack,csvlog,reduce_lr,mdlchkpt])
+    
+    model.save(model_filename)
+    model.save_weights(weights_filename)
+    print("Time taken is %s seconds " % (time.time() - start_time))
     return model
 
 
@@ -122,9 +140,7 @@ if __name__ == "__main__":
 
     avg = load_average() 
     model = train(db, keys, avg)
-
-    model.save('deepdriving_model_lrn.h5')
-    model.save_weights('deepdriving_weights_lrn.h5')
+    
     #with open('deepdriving_model.json', 'w') as f:
     #    f.write(model.to_json())
 
