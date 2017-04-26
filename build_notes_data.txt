@@ -1,12 +1,5 @@
-sudo apt-get update
-
-# if issues with boot
-# Ctrl + Alt + F3
-sudo apt-get install ubuntu-session
-sudo apt-get install lightdm # Select lightdm
-sudo dpkg-reconfigure lightdm # Select lightdm
-sudo reboot
-
+Install freezing at Partition
+Switch SATA Configuration from RAID on to AHCI
 
 CUDA
 become a member of the Nvidia developer community
