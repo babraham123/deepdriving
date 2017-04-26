@@ -1,11 +1,40 @@
 
-# Create ubuntu boot usb with Mac
-hdiutil convert /path/to/ubuntu.iso -format UDRW -o /path/to/target.img
-diskutil list
-# plug in usb
-diskutil list
-diskutil unmountDisk /dev/diskN
-sudo dd if=/path/to/downloaded.img of=/dev/rdiskN bs=1m
-diskutil eject /dev/diskN
+# fresh install
+# kernel panic on shutdown due to neaveau default driver
+# later, boot failure due to ???
+
+# ctrl alt F1 to get terminal
+sudo apt-get purge nvidia*
+sudo apt-get purge cuda*
+sudo service lightdm stop
+sudo vi /etc/modprobe.d/blacklist-nouveau.conf
+	blacklist nouveau
+	options nouveau modeset=0
+sudo update-initramfs -u
+
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
+sudo ubuntu-drivers devices
+sudo apt-get install -y nvidia-381
+sudo ldconfig
+
+sudo service lightdm start
+
+# web browser, download cuda*.run, cudnn*.tgz
+sudo sh cuda*.run --override
+tar -vxzf cudnn*.tgz
+sudo cp -i include/cudnn.h /usr/local/cuda-8.0/include/
+sudo cp -i lib64/libcudnn* /usr/local/cuda-8.0/lib64/
+
+# web browser, download anaconda
+bash anaconda*.sh
+
+conda create -n deepenv1
+source activate deepenv1
+pip install --ignore-installed --upgrade URL
 
 
+
+# transfer files
+sudo mount -t vfat /dev/sdb1 /media/usb
+sudo umount /media/usb
