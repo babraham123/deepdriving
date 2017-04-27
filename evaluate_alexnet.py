@@ -1,4 +1,4 @@
-from train import *
+from train_alexnet import *
 from keras.models import load_model
 
 # nohup python evaluate.py &
@@ -9,10 +9,10 @@ from keras.models import load_model
 
 def evaluate(db, keys, avg):
     m = len(keys)
-    batch_size = 64
-    stream_size = batch_size * 100  # ~10K images loaded at a time
+    batch_size = 16
+    stream_size = batch_size * 500  # ~10K images loaded at a time
 
-    model = load_model('simplified_mdl_lrn_redo.h5')
+    model = load_model('alexnet1.h5')
 
     error = np.empty((m, 14))
 
@@ -26,15 +26,21 @@ def evaluate(db, keys, avg):
 
 
 if __name__ == "__main__":
-    dbpath = '../TORCS_baseline_testset/TORCS_Caltech_1F_Testing_280/'
-    db = plyvel.DB(dbpath)
-    keys = load_keys()
+    dbpath = '/home/lkara/deepdrive/test_images_caltech/'
+    keys = glob(dbpath + '*.jpg')
+    keys.sort()
+    db = np.load(dbpath + 'affordances.npy')
+    db = db.astype('float32')
 
     avg = load_average()
+    # avg.shape = 210x280x3
+    if not same_size:
+        avg = cv2.resize(avg, (227, 227))
+
     scores = evaluate(db, keys, avg)
     print(scores)
+    print("Time taken is %s seconds " % (time() - start_time))
 
-    db.close()
 
 # angle);
 # toMarking_L);
