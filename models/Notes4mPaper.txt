@@ -1,0 +1,8 @@
+ConvNet full - angle to_LL to_ML to_MR to_RR dist_LL dist_MM dist_RR to_L  to_M  to_R  dist_L dist_R
+               0.033 0.188 0.155 0.159 0.183 5.085   4.738   7.983   0.316 0.308 0.294 8.784  10.740
+
+
+Sum of all MAEs = 39.104
+Mean MAE = 3.008
+Approx MSE for all = 39.104^2 = 1529.123
+Approx Mean MSE = 1529.123/13 = 117.6248 

@@ -5,6 +5,9 @@ sudo mount -t ext4 /dev/sda2 /media/lkara/ubuntu
 sudo umount /media/lkara/ubuntu
 
 
+# cache credentials
+git config --global credential.helper "cache --timeout=604800"
+
 # install opencv2
 conda install opencv
 # or
@@ -17,4 +20,11 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE ..
 make -j4
 sudo make install
 sudo ldconfig
+
+# install convnetskeras
+pip install cython h5py
+python setup.py install
+
+# theano
+conda install mkl-service
 

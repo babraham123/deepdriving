@@ -221,9 +221,9 @@ def VGG_19(weights_path=None,heatmap=False):
 
 
 
-def AlexNet(weights_path=None, heatmap=False):
+def AlexNet(weights_path=None, heatmap=False, dim=(3,227,227)):
     K.set_image_dim_ordering('th')
-    inputs = Input(shape=(3,227,227))
+    inputs = Input(shape=dim)
 
     conv_1 = Convolution2D(96, 11, 11,subsample=(4,4),activation='relu',
                            name='conv_1')(inputs)

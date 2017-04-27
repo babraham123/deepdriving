@@ -23,7 +23,7 @@ def crosschannelnormalization(alpha = 1e-4, k=2, beta=0.75, n=5,**kwargs):
         scale = scale ** beta
         return X / scale
 
-    return Lambda(f, output_shape=lambda input_shape:    ,**kwargs)
+    return Lambda(f, output_shape=lambda input_shape:input_shape,**kwargs)
 
 
 
