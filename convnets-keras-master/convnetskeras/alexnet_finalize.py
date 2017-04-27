@@ -1,6 +1,5 @@
-import caffe
-from caffe.proto import caffe_pb2
-import plyvel
+#!/usr/bin/env python
+
 import numpy as np
 import h5py
 from keras import backend as K
@@ -10,8 +9,10 @@ from keras.models import Model
 from keras.callbacks import TensorBoard,CSVLogger,ModelCheckpoint,EarlyStopping,ReduceLROnPlateau
 from convnets import convnet
 import itertools
-from PIL import Image
+# from PIL import Image
+from cv2 import imread, resize
 import matplotlib.pyplot as plt
+from glob import glob
 import time
 start_time = time.time()
 
@@ -35,11 +36,28 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr
 
 
 def train(db, keys, avg):
-    m = len(keys[1:100000])
+    m = 100000 # len(keys)
 
-    batch_size = 20
-    stream_size = batch_size * 1000  # ~10K images loaded at a time
+    batch_size = 16  # powers of 2
+    stream_size = batch_size * 1000  # 16K images loaded at a time
+    epochs = 65
+    
+    model = get_model()
+
+    for i in range(0, m, stream_size):
+        print(i, 'iteration')
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        model.fit(X_batch, Y_batch, 
+                  batch_size=batch_size, epochs=epochs, 
+                  validation_split=0.2, verbose=2, 
+                  callbacks=[tbCallBack,csvlog,reduce_lr,mdlchkpt])
+
+    return model
+
+
+def get_model():
     K.set_image_dim_ordering('th')
+    
     base_model = convnet('alexnet', weights_path = 'alexnet_weights.h5')
     for layer in base_model.layers:
         layer.trainable = False
@@ -52,96 +70,71 @@ def train(db, keys, avg):
     x = Dense(14, activation='linear', init='glorot_normal', name='out')(x)
 
     model = Model(input=base_model.input, output=x)
-    model.summary()#AlexNet()
+    model.summary()
 
     adam = Adam(lr = 1e-4)
     model.compile(optimizer=adam, loss='mse')
     #sgd = SGD(lr=0.05, decay=0.0005, momentum=0.9)    
     #model.compile(optimizer=sgd, loss='mse')
-
-    for i in range(0, m, stream_size):
-        print(i, 'iteration')
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=65, validation_split=0.2, verbose=2, callbacks=[tbCallBack,csvlog,reduce_lr,mdlchkpt])
-    
-    model.save(model_filename)
-    model.save_weights(weights_filename)
-    print("Time taken is %s seconds " % (time.time() - start_time))
     return model
 
 
 def get_data(db, keys, avg):
     n = len(keys)
     if K.image_dim_ordering() == 'tf':
-        print('set to tf ordering')
-        if not same_size:
-            X_train = np.empty((n, 227, 227, 3))
-        else:    
+        if same_size:
             X_train = np.empty((n, 210, 280, 3))
+        else:
+            X_train = np.empty((n, 227, 227, 3))
     else:
-        print('set to th ordering')
-        if not same_size:
-            X_train = np.empty((n, 227, 227, 3))
-        else:    
-            X_train = np.empty((n, 210, 280, 3))
+        if same_size:
+            X_train = np.empty((n, 3, 210, 280))
+        else:
+            X_train = np.empty((n, 3, 227, 227))
             
     Y_train = np.empty((n, 14))
 
     for i, key in enumerate(keys):
-        datum = caffe_pb2.Datum.FromString(db.get(key))
-        img = caffe.io.datum_to_array(datum)
-
-
-        
-        img = img.transpose(1,2,0)
-        #print(img.shape)
-        img2 = Image.fromarray(img,'RGB')
-        
+        img = imread(key)
+        # img.shape = 210x280x3
+        if K.image_dim_ordering() == 'th':
+            img = np.swapaxes(img, 1, 2)
+            img = np.swapaxes(img, 0, 1)
         if not same_size:
-            img2 = img2.resize((227, 227), Image.ANTIALIAS)
-        
-        img =  np.asarray(img2)
-        
-        img = img.transpose(2,1,0)
-        #plt.imshow(img)
+            img = resize(img, (227, 227, 3))
 
         img = img.astype('float32')
         img = img / 255
-        #img = np.subtract(img, avg)
+        img = np.subtract(img, avg)
         X_train[i] = img
 
-        affordances = [j for j in datum.float_data]
-        affordances = np.array(affordances)
+        j = int(key[-12:-4])
+        affordances = db[j-1]
+        if int(affordances[0]) != j:
+            raise ValueError('Image and affordance do not match: ' + str(j))
+        affordances = affordances[1:]
         affordances = affordances.reshape(1, 14)
-        affordances = affordances.astype('float32')
         Y_train[i] = affordances
 
     return X_train, Y_train
 
 
 def load_average():
-    h5f = h5py.File('deepdriving_average.h5', 'r')
+    h5f = h5py.File('../../deepdriving_average.h5', 'r')
     avg = h5f['average'][:]
     h5f.close()
     return avg
 
 
-def load_keys():
-    keys = []
-    with open('keys.txt', 'rb') as f:
-        keys = [line.strip() for line in f]
-    return keys
-
-
 if __name__ == "__main__":
-    dbpath = '/home/asankar/deepdrive/TORCS_Training_1F'
-    db = plyvel.DB(dbpath)
-    keys = load_keys()
+    dbpath = '/home/lkara/deepdrive/train_images/'
+    keys = glob(dbpath + '*.jpg')
+    keys.sort()
+    db = np.load(dbpath + 'affordances.npy')
+    db = db.astype('float32')
 
     avg = load_average() 
     model = train(db, keys, avg)
-    
-    #with open('deepdriving_model.json', 'w') as f:
-    #    f.write(model.to_json())
 
-    db.close()
+    model.save('alexnet.h5')
+    print("Time taken is %s seconds " % (time.time() - start_time))
