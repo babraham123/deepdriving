@@ -1,4 +1,4 @@
-#from alexnet_reduced import AlexNet
+from alexnet_reduced import AlexNet
 import caffe
 from caffe.proto import caffe_pb2
 import plyvel
@@ -12,7 +12,7 @@ from keras.layers.normalization import LRN2D
 from keras.optimizers import Adam
 import itertools
 from PIL import Image
-from convnet import*
+#from convnets-keras-master.convnetskeras.convnets import*
 # nenumerate(keys[0,10000])ohup python train.py &
 # ps -ef | grep train.py
 # kill UID
@@ -29,14 +29,54 @@ def train(db, keys, avg):
     stream_size = 3200 #batch_size * 100  # ~10K images loaded at a time
    
     batch_size = 32
+#    model = AlexNet()
     
     if K.image_dim_ordering() == 'tf':
         inputs = Input(shape=(new_rows, new_cols, 3))
     else:
         inputs = Input(shape=(3, new_rows, new_cols))
 
-    images = preprocess_image_batch(db, (227, 227), None)
-    model =  
+
+    conv_1 = Convolution2D(96, 11, 11, subsample=(4,4), activation='relu',kernel_initializer='normal', bias_initializer='zeros', name='conv_1')(inputs)
+    conv_2 = Convolution2D(96, 5, 5, activation="relu", kernel_initializer='normal', bias_initializer='zeros', name='conv_2')(conv_1)
+
+    conv_3 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_2)
+  
+    #Add the fully-connected layers
+    x = Flatten(name='flatten')(conv_3)
+       
+########################## Top Layer #######################################################
+    #x = Dropout(0.25)(x)
+    x = Dense(512, activation='relu', name='fc1')(x)
+    x = Dense(512, activation='relu' , name='fc2')(x)
+    x = Dense(256, activation='relu', name='fc3')(x)
+   # dense_4 = Dropout(0.5)(dense_3)
+
+
+
+
+    out = Dense(14, activation='linear', name='fc4')(x)
+       
+    #Create your own model    
+    model = Model(input=inputs, output=out)
+    model.summary()
+    
+    model.load_weights('alexnet_weights.h5') 
+    adam = Adam()
+    model.compile(optimizer=adam, loss='mse')
+    
+    for i in range(0, m, stream_size):
+        print(i)
+        print('^ iteration')
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=60, verbose=1)
+
+    # requires adam optimizer
+    # model.fit(X_train, Y_train,
+    #       batch_size=64, nb_epoch=4700, verbose=1,
+    #       validation_data=(X_test, Y_test))
+    # max_iter = #epochs * (training set/training_batch_size) 
+
     return model
 
 
