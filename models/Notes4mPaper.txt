@@ -6,3 +6,10 @@ Sum of all MAEs = 39.104
 Mean MAE = 3.008
 Approx MSE for all = 39.104^2 = 1529.123
 Approx Mean MSE = 1529.123/13 = 117.6248 
+
+
+To Do
+
+-> reload previously trained weights after every stream or use datagenerator
+-> Change outputs13 to 13 individual ones
+
