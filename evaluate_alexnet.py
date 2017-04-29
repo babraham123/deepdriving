@@ -1,5 +1,5 @@
-from train_alexnet import *
-from keras.models import load_model
+from train_alexnet_normalized import *
+from keras.models import load_model, load_weights
 
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
@@ -12,21 +12,28 @@ def evaluate(db, keys, avg):
     batch_size = 16
     stream_size = batch_size * 500  # ~10K images loaded at a time
 
-    model = load_model('alexnet1.h5')
+    try:
+        model = load_model('models/model1.h5')
+    except Exception:
+        model = get_model()
+        model.load_weights('models/model_weights1.h5')
+        
 
     error = np.empty((m, 14))
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
         Y_predict = model.predict(X_batch, batch_size=batch_size, verbose=1)
-        error[i:(i + stream_size)] = (Y_batch - Y_predict) ** 2
+        Y_predict = descale_output(Y_predict)
+        
+        error[i:(i + stream_size)] = np.absolute(Y_batch - Y_predict)
 
-    mse = error.mean(axis=0)
-    return mse
+    mae = error.mean(axis=0)
+    return mae
 
 
 if __name__ == "__main__":
-    dbpath = '/home/lkara/deepdrive/test_images_caltech/'
+    dbpath = '/home/lkara/deepdrive/test_images_gist/'
     keys = glob(dbpath + '*.jpg')
     keys.sort()
     db = np.load(dbpath + 'affordances.npy')
@@ -38,7 +45,7 @@ if __name__ == "__main__":
         avg = cv2.resize(avg, (227, 227))
 
     scores = evaluate(db, keys, avg)
-    print(scores)
+    print('Mean absolute error: ' + str(scores))
     print("Time taken is %s seconds " % (time() - start_time))
 
 
