@@ -3,31 +3,28 @@
 """
 Created on Fri Apr 28 13:33:45 2017
 
-@author: lkara
+@author: Bereket Abraham
 """
 
+from keras.models import Sequential, Model
+from keras.layers import Flatten, Dense, BatchNormalization, Dropout, Reshape, Permute, Activation, Input
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from keras.optimizers import SGD, Adam
+from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, TensorBoard
+from keras import backend as K
 import numpy as np
 import h5py
-from keras import backend as K
-from keras.optimizers import Adam, SGD
-from keras.layers import Dense, Dropout,Input, Convolution2D, MaxPooling2D,ZeroPadding2D,LRN2D, merge, Flatten, Activation
-from keras.models import Model
-from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, \
-    splittensor, Softmax4D
-from keras.utils.layer_utils import convert_all_kernels_in_model
-#from convnetskeras.convnets import AlexNet
 import cv2
 from glob import glob
 from time import time
+from os.path import isfile
 start_time = time()
 
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID
 
-
-same_size = False
+same_size = True
 model_num = 1
 logs_path = "/home/lkara/deepdrive/deepdriving/models/run%d/" % model_num
 model_filename = '/home/lkara/deepdrive/deepdriving/models/model%d.json' % model_num
@@ -35,13 +32,13 @@ weights_filename = '/home/lkara/deepdrive/deepdriving/models/model_weights%d.h5'
 csvlog_filename = '/home/lkara/deepdrive/deepdriving/models/model%d.csv' % model_num
 
 #  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
-# tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
+tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
 csvlog = CSVLogger(csvlog_filename, separator=',', append=False)
 mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=True, save_weights_only=True, period=2, verbose=1)
 erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patience=10, verbose=1)
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5, verbose=1)
 
-K.set_image_dim_ordering('th')
+# K.set_image_dim_ordering('th')
 if K.image_dim_ordering() == 'tf':
     if same_size:
         dim = (210, 280, 3)
@@ -58,99 +55,88 @@ def train(db, keys, avg):
     m = 100000  # len(keys)
 
     batch_size = 16  # powers of 2
-    stream_size = batch_size * 500  # 16K images loaded at a time
+    stream_size = batch_size * 500  # 8K images loaded at a time
     epochs = 5
-    model = get_model()
 
-    for j in range(epochs):
-        for i in range(0, m, stream_size):
-            print(i, 'iteration')
-            X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-            model.fit(X_batch, Y_batch,
-                      batch_size=batch_size, epochs=1,
-                      validation_split=0.2, verbose=2,
-                      callbacks=[csvlog, reduce_lr, mdlchkpt])  # tbCallBack
+    wfile = 'alexnet_weights.h5'
+
+    if isfile(wfile):
+        model = alexnet(weights_path=wfile)
+    else:
+        model = alexnet()
+    # for layer in base_model.layers:
+    #     layer.trainable = False
+    # x = base_model.output
+    # x = Dense(512, activation='relu', init='glorot_normal', name='fc1')(x)
+
+    for i in range(0, m, stream_size):
+        print(i, 'iteration')
+        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        model.fit(X_batch, Y_batch,
+                  batch_size=batch_size, epochs=epochs,
+                  validation_split=0.2, verbose=2,
+                  callbacks=[csvlog, reduce_lr, mdlchkpt, tbCallBack])
 
     return model
 
 
-def get_model():
-    base_model = AlexNet(weights_path='alexnet_weights.h5', dim=dim)
+def alexnet(weights_path=None):
+    """
+    Returns a keras model for a CNN.
+    input data are of the shape (227,227), and the colors in the RGB order (default)
 
-    # remove softmax output layer
-
-    for layer in base_model.layers:
-        layer.trainable = False
-
-    x = base_model.output
-    x = Dense(512, activation='relu', init='glorot_normal', name='fc1')(x)
-    x = Dense(512, activation='relu', init='glorot_normal', name='fc2')(x)
-    #x = Dropout(0.5)(x)
-    x = Dense(256, activation='relu', init='glorot_normal', name='fc3')(x)
-    x = Dense(14, activation='linear', init='glorot_normal', name='out')(x)
-
-    model = Model(input=base_model.input, output=x)
-    model.summary()
-
-    adam = Adam(lr=1e-4)
-    model.compile(optimizer=adam, loss='mse')
-    # sgd = SGD(lr=0.05, decay=0.0005, momentum=0.9)
-    # model.compile(optimizer=sgd, loss='mse')
-    return model
-
-
-def AlexNet(weights_path=None, heatmap=False, dim=(3,227,227)):
-    K.set_image_dim_ordering('th')
+    model: The keras model for this convnet
+    output_dict: Dict of feature layers, asked for in output_layers.
+    """
     inputs = Input(shape=dim)
 
-    conv_1 = Convolution2D(96, 11, 11,subsample=(4,4),activation='relu',
-                           name='conv_1')(inputs)
+    conv_1 = Convolution2D(96, 11, 11, subsample=(4, 4), activation='relu', name='conv_1')(inputs)
+    # initial weights filler? gaussian, std 0.01
+    conv_2 = MaxPooling2D((3, 3), strides=(2, 2))(conv_1)
+    conv_2 = BatchNormalization()(conv_2)
+    # in caffe: Local Response Normalization (LRN)
 
-    conv_2 = MaxPooling2D((3, 3), strides=(2,2))(conv_1)
-    #conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
-    conv_2 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_2)
-    conv_2 = ZeroPadding2D((2,2))(conv_2)
-    conv_2 = merge([
-        Convolution2D(128,5,5,activation="relu",name='conv_2_'+str(i+1))(
-            splittensor(ratio_split=2,id_split=i)(conv_2)
-        ) for i in range(2)], mode='concat',concat_axis=1,name="conv_2")
-    
+    # alpha = 1e-4, k=2, beta=0.75, n=5,
+    conv_2 = ZeroPadding2D((2, 2))(conv_2)
+    conv_2 = Convolution2D(256, 5, 5, activation="relu", name='conv_2')(conv_2)
+
     conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
-    #conv_3 = crosschannelnormalization()(conv_3)
-    conv_3 = LRN2D(alpha=1e-4, beta=0.75, n=5)(conv_3)  # local response normalization (not batch)
-    conv_3 = ZeroPadding2D((1,1))(conv_3)
-    conv_3 = Convolution2D(384,3,3,activation='relu',name='conv_3')(conv_3)
+    conv_3 = BatchNormalization()(conv_3)
+    conv_3 = ZeroPadding2D((1, 1))(conv_3)
+    conv_3 = Convolution2D(384, 3, 3, activation='relu', name='conv_3')(conv_3)
 
-    conv_4 = ZeroPadding2D((1,1))(conv_3)
-    conv_4 = merge([
-        Convolution2D(192,3,3,activation="relu",name='conv_4_'+str(i+1))(
-            splittensor(ratio_split=2,id_split=i)(conv_4)
-        ) for i in range(2)], mode='concat',concat_axis=1,name="conv_4")
+    conv_4 = ZeroPadding2D((1, 1))(conv_3)
+    conv_4 = Convolution2D(384, 3, 3, activation="relu", name='conv_4')(conv_4)
 
-    conv_5 = ZeroPadding2D((1,1))(conv_4)
-    conv_5 = merge([
-        Convolution2D(128,3,3,activation="relu",name='conv_5_'+str(i+1))(
-            splittensor(ratio_split=2,id_split=i)(conv_5)
-        ) for i in range(2)], mode='concat',concat_axis=1,name="conv_5")
-
-    dense_1 = MaxPooling2D((3, 3), strides=(2,2),name="convpool_5")(conv_5)
+    conv_5 = ZeroPadding2D((1, 1))(conv_4)
+    conv_5 = Convolution2D(256, 3, 3, activation="relu", name='conv_5')(conv_5)
+    dense_1 = MaxPooling2D((3, 3), strides=(2, 2), name="convpool_5")(conv_5)
 
     dense_1 = Flatten(name="flatten")(dense_1)
-    dense_1 = Dense(4096, activation='relu',name='dense_1')(dense_1)
+    # initial weights filler? gaussian, std 0.005
+    dense_1 = Dense(4096, activation='relu', name='dense_1')(dense_1)
     dense_2 = Dropout(0.5)(dense_1)
-    dense_2 = Dense(4096, activation='relu',name='dense_2')(dense_2)
+
+    dense_2 = Dense(4096, activation='relu', name='dense_2')(dense_2)
     dense_3 = Dropout(0.5)(dense_2)
-    dense_3 = Dense(1000,name='dense_3')(dense_3)
-    prediction = Activation("softmax", name = "softmax")(dense_3)
 
+    # initial weights filler? gaussian, std 0.01
+    dense_3 = Dense(256, activation='relu', name='dense_3')(dense_3)
+    dense_4 = Dropout(0.5)(dense_3)
 
-    model = Model(input=inputs, output=prediction)
+    # output: 14 affordances, gaussian std 0.01
+    dense_4 = Dense(14, activation='hard_sigmoid', name='dense_4')(dense_4)
+    # dense_4 = Dense(14, activation='linear', name='dense_4')(dense_4)
+
+    model = Model(input=inputs, output=dense_4)
+    model.summary()
 
     if weights_path:
-       model.load_weights(weights_path)
+        model.load_weights(weights_path)
 
-    if K.backend() == 'tensorflow':
-        model = convert_all_kernels_in_model(model)
+    # sgd = SGD(lr=0.01, decay=0.0005, momentum=0.9)  # nesterov=True) # LSTM
+    adam = Adam(lr=1e-4)
+    model.compile(optimizer=adam, loss='mse')  # try cross-entropy
 
     return model
 
@@ -198,10 +184,12 @@ def get_data(db, keys, avg):
 
 
 def scale_output(affordances):
-    affordances[0] = affordances[0] / 1.1 + 0.5  #angle
+    ''' Scale output between [0.1, 0.9]
+    '''
+    affordances[0] = affordances[0] / 1.1 + 0.5  # angle
 
-    affordances[1] = affordances[1] / 5.6249 + 1.34445     #toMarking_L
-    affordances[2] = affordances[2] / 6.8752 + 0.39091     #toMarking_M
+    affordances[1] = affordances[1] / 5.6249 + 1.34445  # toMarking_L
+    affordances[2] = affordances[2] / 6.8752 + 0.39091  # toMarking_M
     affordances[3] = affordances[3] / 5.6249 - 0.34445     #toMarking_R
 
     affordances[4] = affordances[4] / 95 + 0.12     #dist_L
@@ -240,7 +228,7 @@ def descale_output(affordances):
 
 
 def load_average():
-    h5f = h5py.File('deepdriving_average.h5', 'r')
+    h5f = h5py.File('/home/lkara/deepdrive/deepdriving/deepdriving_average.h5', 'r')
     avg = h5f['average'][:]
     h5f.close()
     return avg
@@ -251,6 +239,9 @@ if __name__ == "__main__":
     keys = glob(dbpath + '*.jpg')
     keys.sort()
     db = np.load(dbpath + 'affordances.npy')
+
+    # TODO : shuffle and keep aligned
+
     db = db.astype('float32')
 
     avg = load_average()
