@@ -20,6 +20,7 @@ from time import time
 from os.path import isfile
 start_time = time()
 
+# source activate tfenv
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID
@@ -38,7 +39,6 @@ mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=
 erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patience=10, verbose=1)
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5, verbose=1)
 
-# K.set_image_dim_ordering('th')
 if K.image_dim_ordering() == 'tf':
     if same_size:
         dim = (210, 280, 3)
@@ -157,13 +157,13 @@ def get_data(db, keys, avg):
         img = img.astype('float32')
 
         # convnet preprocessing using during training
-        img[:, :, 0] -= 123.68
-        img[:, :, 1] -= 116.779
-        img[:, :, 2] -= 103.939
+        # img[:, :, 0] -= 123.68
+        # img[:, :, 1] -= 116.779
+        # img[:, :, 2] -= 103.939
         # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-        # img = img / 255.0
-        # img = np.subtract(img, avg)
+        img = img / 255.0
+        img = np.subtract(img, avg)
         if K.image_dim_ordering() == 'th':
             img = np.swapaxes(img, 1, 2)
             img = np.swapaxes(img, 0, 1)
