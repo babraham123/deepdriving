@@ -42,11 +42,13 @@ erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patie
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5, verbose=1)
 
 if K.image_dim_ordering() == 'tf':
+    print('Tensorflow')
     if same_size:
         dim = (210, 280, 3)
     else:
         dim = (227, 227, 3)
 else:
+    print('Theano')
     if same_size:
         dim = (3, 210, 280)
     else:
