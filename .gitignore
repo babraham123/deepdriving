@@ -93,5 +93,7 @@ ENV/
 *.h5
 graph/
 *.png
-
+events.out*
+*.csv
 *~
+

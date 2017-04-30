@@ -26,11 +26,13 @@ start_time = time()
 # kill UID
 
 same_size = True
+pretrained = False
 model_num = 1
-logs_path = "/home/lkara/deepdrive/deepdriving/models/run%d/" % model_num
-model_filename = '/home/lkara/deepdrive/deepdriving/models/model%d.json' % model_num
-weights_filename = '/home/lkara/deepdrive/deepdriving/models/model_weights%d.h5' % model_num
-csvlog_filename = '/home/lkara/deepdrive/deepdriving/models/model%d.csv' % model_num
+folder = "/home/lkara/deepdrive/deepdriving/new/"
+logs_path = folder + "models"
+model_filename = folder + 'models/model%d.json' % model_num
+weights_filename = folder + 'models/model_weights%d.h5' % model_num
+csvlog_filename = folder + 'models/model%d.csv' % model_num
 
 #  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
 # tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
@@ -58,10 +60,8 @@ def train(db, keys, avg):
     stream_size = batch_size * 500  # 8K images loaded at a time
     epochs = 5
 
-    wfile = 'alexnet_weights.h5'
-
-    if isfile(wfile):
-        model = alexnet(weights_path=wfile)
+    if pretrained and isfile(weights_filename):
+        model = alexnet(weights_path=weights_filename)
     else:
         model = alexnet()
     # for layer in base_model.layers:
@@ -251,5 +251,5 @@ if __name__ == "__main__":
 
     model = train(db, keys, avg)
 
-    model.save('alexnet%d.h5' % model_num)
+    model.save(folder + "models/alexnet%d.h5" % model_num)
     print("Time taken is %s seconds " % (time() - start_time))
