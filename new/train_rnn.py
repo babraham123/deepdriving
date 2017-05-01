@@ -117,7 +117,8 @@ def alexnet_lstm(hist_size, weights_path=None):
     model.add(Activation('relu'))
     model.add(TimeDistributed(MaxPooling2D((3, 3), strides=(2, 2))))
 
-    model.add(TimeDistributed(Reshape((hist_size, np.prod(model.output_shape[-3:])))))
+    print(model.output_shape)
+    model.add(Reshape((hist_size, np.prod(model.output_shape[-3:]))))
     model.add(LSTM(output_dim=4096, return_sequences=True, name='lstm_1'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
