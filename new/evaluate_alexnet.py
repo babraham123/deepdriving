@@ -1,6 +1,7 @@
 from train_combined import *
 from keras.models import load_model
 
+# source activate deepenv1
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
 # tail -f nohup.out

@@ -20,7 +20,7 @@ from time import time
 from os.path import isfile
 start_time = time()
 
-# source activate tfenv
+# source activate deepenv1
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID

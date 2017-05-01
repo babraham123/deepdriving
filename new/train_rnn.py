@@ -20,7 +20,7 @@ from time import time
 from os.path import isfile
 start_time = time()
 
-# source activate tfenv
+# source activate deepenv1
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID
@@ -41,9 +41,6 @@ mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=
 erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patience=10, verbose=1)
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5, verbose=1)
 
-#### History Size
-hist_size = 4
-
 if K.image_dim_ordering() == 'tf':
     print('Tensorflow')
     if same_size:
@@ -59,46 +56,50 @@ else:
 
 
 def train(db, keys, avg):
-    m = 100000  # len(keys)
-
+    m = 100000  # len(keys)  # dataset size
     batch_size = 16  # powers of 2
-    stream_size = batch_size * 500  # 8K images loaded at a time
+    stream_size = batch_size * 100  # 6400 images loaded at a time
     epochs = 5
+    hist_size = 4  # History size
 
     if pretrained and isfile(weights_filename):
-        model = alexnet_lstm(weights_path=weights_filename)
+        model = alexnet_lstm(weights_path=weights_filename, hist_size)
     else:
-        model = alexnet_lstm()
-    # for layer in base_model.layers:
-    #     layer.trainable = False
-    # x = base_model.output
-    # x = Dense(512, activation='relu', init='glorot_normal', name='fc1')(x)
+        model = alexnet_lstm(hist_size)
 
     for i in range(0, m, stream_size):
         print(i, 'iteration')
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        X_batch, Y_batch = convert_sequence_sliding(X_batch, Y_batch, hist_size)
         model.fit(X_batch, Y_batch,
                   batch_size=batch_size, epochs=epochs,
                   validation_split=0.2, verbose=2,
-                  callbacks=[csvlog, reduce_lr, mdlchkpt]) # , tbCallBack])
+                  callbacks=[csvlog, reduce_lr, mdlchkpt])  # , tbCallBack])
 
     return model
 
 
-def alexnet_lstm(weights_path=None):
-  
+def alexnet_lstm(weights_path=None, hist_size):
+    """
+    Returns a keras model for a CNN + RNN.
+    input data are of the shape (227,227), and the colors in the RGB order (default)
+
+    model: The keras model for this convnet
+    output_dict: Dict of feature layers, asked for in output_layers.
+    """
+    time_dim = (hist_size,) + dim
     model = Sequential()
-    model.add(TimeDistributed(Convolution2D(96, 11, 11, subsample=(4, 4), name='conv_1'), input_shape=dim))
+    model.add(TimeDistributed(Convolution2D(96, 11, 11, subsample=(4, 4), name='conv_1'), input_shape=time_dim))
     model.add(Activation('relu'))
     model.add(TimeDistributed(MaxPooling2D(pool_size=(3, 3), strides=(2, 2))))
     model.add(BatchNormalization())
-    
+
     model.add(TimeDistributed(ZeroPadding2D((2, 2))))
-    model.add(TimeDistributed(Convolution2D(256,5,5, name='conv_2')))
+    model.add(TimeDistributed(Convolution2D(256, 5, 5, name='conv_2')))
     model.add(Activation('relu'))
     model.add(TimeDistributed(MaxPooling2D((3, 3), strides=(2, 2))))
     model.add(BatchNormalization())
-    
+
     model.add(TimeDistributed(ZeroPadding2D((1, 1))))
     model.add(TimeDistributed(Convolution2D(384, 3, 3, name='conv_3')))
     model.add(Activation('relu'))
@@ -106,30 +107,35 @@ def alexnet_lstm(weights_path=None):
     model.add(TimeDistributed(ZeroPadding2D((1, 1))))
     model.add(TimeDistributed(Convolution2D(384, 3, 3, name='conv_3')))
     model.add(Activation('relu'))
-    
+
     model.add(TimeDistributed(ZeroPadding2D((1, 1))))
-    model.add(TimeDistributed(Convolution2D(256,3,3, name='conv_5')))
+    model.add(TimeDistributed(Convolution2D(256, 3, 3, name='conv_5')))
     model.add(Activation('relu'))
     model.add(TimeDistributed(MaxPooling2D((3, 3), strides=(2, 2))))
 
-    model.add(Reshape((hist_size,np.prod(model.output_shape[-3:]))))
-    model.add(LSTM(output_dim=4096,return_sequences=True, name='dense_1'))
+    model.add(Reshape((hist_size, np.prod(model.output_shape[-3:]))))
+    model.add(LSTM(output_dim=4096, return_sequences=True, name='lstm_1'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
-    model.add(LSTM(output_dim=4096,return_sequences=True, name='dense_2'))
+    model.add(LSTM(output_dim=4096, return_sequences=False, name='lstm_2'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
-    model.add(LSTM(output_dim=256,return_sequences=True, name='dense_3'))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    
-    model.add(LSTM(output_dim=14,return_sequences=False, name='dense_4'))
-    model.add(Activation('hard_sigmoid'))    
-        
-    model.summary()
 
+    model.add(Dense(256, activation='relu', name='dense_1'))
+    model.add(Dropout(0.5))
+    # output: 14 affordances, gaussian std 0.01
+    model.add(Dense(14, activation='hard_sigmoid', name='dense_2'))
+
+    # model.add(LSTM(output_dim=256, return_sequences=True, name='dense_3'))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.5))
+    # # output: 14 affordances
+    # model.add(LSTM(output_dim=14, return_sequences=False, name='dense_4'))
+    # model.add(Activation('hard_sigmoid'))
+
+    model.summary()
     adam = Adam(lr=1e-4)
-    model.compile(optimizer=adam, loss='mse',metrics=['mae'])  # try cross-entropy
+    model.compile(optimizer=adam, loss='mse', metrics=['mae'])
 
     return model
 
@@ -174,6 +180,37 @@ def get_data(db, keys, avg):
         Y_train[i] = affordances
 
     return X_train, Y_train
+
+
+def convert_sequence_no_overlap(X, Y, hist_size):
+    '''convert dataset into a series of non-overlapping sequences
+    '''
+    n = X.shape[0] / hist_size  # number of sequences
+    xdim = (n, hist_size) + dim
+    X_seq = np.empty(xdim)
+    Y_seq = np.empty((n, 14))
+
+    for j in range(n):
+        i = j * hist_size
+        X_seq[j] = X[i:(i + hist_size)]
+        Y_seq[j] = Y[i + hist_size - 1]
+
+    return X_seq, Y_seq
+
+
+def convert_sequence_sliding(X, Y, hist_size):
+    '''convert dataset into a sliding window series of sequences
+    '''
+    n = X.shape[0] - hist_size + 1  # number of sequences
+    xdim = (n, hist_size) + dim
+    X_seq = np.empty(xdim)
+    Y_seq = np.empty((n, 14))
+
+    for i in range(n):
+        X_seq[i] = X[i:(i + hist_size)]
+        Y_seq[i] = Y[i + hist_size - 1]
+
+    return X_seq, Y_seq
 
 
 def scale_output(affordances):
