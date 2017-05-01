@@ -9,20 +9,24 @@ from keras.models import load_model
 
 def evaluate(db, keys, avg):
     m = len(keys)
-    batch_size = 16
+    batch_size = 1  # 16
     stream_size = batch_size * 500  # ~10K images loaded at a time
 
     try:
-        model = load_model(folder + 'models/alexnet1.h5')
+        model = load_model(folder + "models/alexnet%d.h5" % model_num)
     except Exception:
         model = alexnet()
-        model.load_weights(folder + 'models/model_weights1.h5')
+        model.load_weights(folder + "models/model_weights%d.h5" % model_num)
 
     error = np.empty((m, 14))
     error2 = np.empty((m, 14))
 
     for i in range(0, m, stream_size):
         X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        #score = model.evaluate(X_batch,Y_batch,verbose=0)
+        #mae = score[1] 
+        #mse = score[0] 
+        
         Y_predict = model.predict(X_batch, batch_size=batch_size, verbose=1)
         Y_predict = descale_output(Y_predict)
         

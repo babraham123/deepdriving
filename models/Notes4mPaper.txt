@@ -9,7 +9,7 @@ Approx Mean MSE = 1529.123/13 = 117.6248
 
 
 To Do
-
+-> Use Alexnet without the top dense layers
 -> reload previously trained weights after every stream or use datagenerator
 -> Change outputs13 to 13 individual ones
 

@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 28 13:33:45 2017
-
-@author: lkara
-"""
-
 import numpy as np
 import h5py
 from keras import backend as K
@@ -135,16 +127,16 @@ def AlexNet(weights_path=None, heatmap=False, dim=(3,227,227)):
 
     dense_1 = MaxPooling2D((3, 3), strides=(2,2),name="convpool_5")(conv_5)
 
-    dense_1 = Flatten(name="flatten")(dense_1)
-    dense_1 = Dense(4096, activation='relu',name='dense_1')(dense_1)
-    dense_2 = Dropout(0.5)(dense_1)
-    dense_2 = Dense(4096, activation='relu',name='dense_2')(dense_2)
-    dense_3 = Dropout(0.5)(dense_2)
-    dense_3 = Dense(1000,name='dense_3')(dense_3)
-    prediction = Activation("softmax", name = "softmax")(dense_3)
+#    dense_1 = Flatten(name="flatten")(dense_1)
+#    dense_1 = Dense(4096, activation='relu',name='dense_1')(dense_1)
+#    dense_2 = Dropout(0.5)(dense_1)
+#    dense_2 = Dense(4096, activation='relu',name='dense_2')(dense_2)
+#    dense_3 = Dropout(0.5)(dense_2)
+#    dense_3 = Dense(1000,name='dense_3')(dense_3)
+#    prediction = Activation("softmax", name = "softmax")(dense_3)
 
 
-    model = Model(input=inputs, output=prediction)
+    model = Model(input=inputs, output=dense_1)
 
     if weights_path:
        model.load_weights(weights_path)

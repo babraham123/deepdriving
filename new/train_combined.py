@@ -27,7 +27,7 @@ start_time = time()
 
 same_size = True
 pretrained = False
-model_num = 1
+model_num = 2
 folder = "/home/lkara/deepdrive/deepdriving/new/"
 logs_path = folder + "models"
 model_filename = folder + 'models/model%d.json' % model_num
@@ -138,7 +138,7 @@ def alexnet(weights_path=None):
 
     # sgd = SGD(lr=0.01, decay=0.0005, momentum=0.9)  # nesterov=True) # LSTM
     adam = Adam(lr=1e-4)
-    model.compile(optimizer=adam, loss='mse')  # try cross-entropy
+    model.compile(optimizer=adam, loss='mse',metrics=['mae'])  # try cross-entropy
 
     return model
 
