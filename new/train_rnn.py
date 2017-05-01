@@ -88,6 +88,10 @@ def alexnet_lstm(hist_size, weights_path=None):
     output_dict: Dict of feature layers, asked for in output_layers.
     """
     time_dim = (hist_size,) + dim
+    m = 1
+    for i in dim:
+        m *= i
+
     model = Sequential()
     model.add(TimeDistributed(Convolution2D(96, 11, 11, subsample=(4, 4), name='conv_1'), input_shape=time_dim))
     model.add(Activation('relu'))
@@ -113,7 +117,7 @@ def alexnet_lstm(hist_size, weights_path=None):
     model.add(Activation('relu'))
     model.add(TimeDistributed(MaxPooling2D((3, 3), strides=(2, 2))))
 
-    model.add(Reshape((hist_size, np.prod(model.output_shape[-3:]))))
+    model.add(TimeDistributed(Reshape((hist_size, np.prod(model.output_shape[-3:])))))
     model.add(LSTM(output_dim=4096, return_sequences=True, name='lstm_1'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
