@@ -44,15 +44,15 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr
 if K.image_dim_ordering() == 'tf':
     print('Tensorflow')
     if same_size:
-        dim = (hist_size, 210, 280, 3)
+        dim = (210, 280, 3)
     else:
-        dim = (hist_size, 227, 227, 3)
+        dim = (227, 227, 3)
 else:
     print('Theano')
     if same_size:
-        dim = (hist_size, 3, 210, 280)
+        dim = (3, 210, 280)
     else:
-        dim = (hist_size, 3, 227, 227)
+        dim = (3, 227, 227)
 
 
 def train(db, keys, avg):
@@ -63,7 +63,7 @@ def train(db, keys, avg):
     hist_size = 4  # History size
 
     if pretrained and isfile(weights_filename):
-        model = alexnet_lstm(weights_path=weights_filename, hist_size)
+        model = alexnet_lstm(hist_size, weights_path=weights_filename)
     else:
         model = alexnet_lstm(hist_size)
 
@@ -79,7 +79,7 @@ def train(db, keys, avg):
     return model
 
 
-def alexnet_lstm(weights_path=None, hist_size):
+def alexnet_lstm(hist_size, weights_path=None):
     """
     Returns a keras model for a CNN + RNN.
     input data are of the shape (227,227), and the colors in the RGB order (default)
