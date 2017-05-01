@@ -7,7 +7,7 @@ Created on Fri Apr 28 13:33:45 2017
 """
 
 from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, BatchNormalization, Dropout, Reshape, Input, TimeDistributed, LSTM
+from keras.layers import Activation, Dense, BatchNormalization, Dropout, Reshape, Input, TimeDistributed, LSTM, TimeDistributedFlatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD, Adam
 from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, TensorBoard
@@ -118,11 +118,12 @@ def alexnet_lstm(hist_size, weights_path=None):
     model.add(TimeDistributed(MaxPooling2D((3, 3), strides=(2, 2))))
 
     print(model.output_shape)
-    model.add(Reshape((hist_size, np.prod(model.output_shape[-3:]))))
-    model.add(LSTM(output_dim=4096, return_sequences=True, name='lstm_1'))
+    # model.add(Reshape((hist_size, np.prod(model.output_shape[-3:]))))
+    model.add(TimeDistributedFlatten())
+    model.add(LSTM(4096, return_sequences=True, name='lstm_1'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
-    model.add(LSTM(output_dim=4096, return_sequences=False, name='lstm_2'))
+    model.add(LSTM(4096, return_sequences=False, name='lstm_2'))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
 
