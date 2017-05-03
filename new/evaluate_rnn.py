@@ -39,7 +39,7 @@ def evaluate(db, keys, avg):
             Y_predict[k] = descale_output(Y_predict[k])
 
         error[j:(j + num_seq)] = np.absolute(Y_batch - Y_predict)
-        error2[j:(j + num_seq)] = (Y_batch - Y_predict) ** 2
+        error2[j:(j + num_seq)] = np.square(Y_batch - Y_predict)
         j += num_seq
 
     if(j != n):

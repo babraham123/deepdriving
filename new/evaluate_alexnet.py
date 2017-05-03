@@ -33,7 +33,7 @@ def evaluate(db, keys, avg):
             Y_predict[k] = descale_output(Y_predict[k])
 
         error[i:(i + stream_size)] = np.absolute(Y_batch - Y_predict)
-        error2[i:(i + stream_size)] = (Y_batch - Y_predict) ** 2
+        error2[i:(i + stream_size)] = np.square(Y_batch - Y_predict)
 
     mae = error.mean(axis=0)
     mse = error2.mean(axis=0)
@@ -41,7 +41,7 @@ def evaluate(db, keys, avg):
 
 
 if __name__ == "__main__":
-    dbpath = '/home/lkara/deepdrive/test_images_gist/'
+    dbpath = '/home/lkara/deepdrive/test_images_caltech/'
     keys = glob(dbpath + '*.jpg')
     keys.sort()
     db = np.load(dbpath + 'affordances.npy')
