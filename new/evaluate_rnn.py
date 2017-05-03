@@ -1,5 +1,6 @@
 from train_rnn import *
 from keras.models import load_model
+import math
 
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
@@ -19,7 +20,7 @@ def evaluate(db, keys, avg):
         model = alexnet()
         model.load_weights(folder + "models/model_weights%d.h5" % model_num)
 
-    n = ((stream_size - hist_size + 1) * floor(m / stream_size)) + ((m % stream_size) - hist_size + 1)
+    n = ((stream_size - hist_size + 1) * math.floor(m / stream_size)) + ((m % stream_size) - hist_size + 1)
     error = np.empty((n, 14))
     error2 = np.empty((n, 14))
 
