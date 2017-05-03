@@ -14,7 +14,8 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLRO
 from keras import backend as K
 import numpy as np
 import h5py
-import cv2
+#import cv2
+from PIL import Image
 from glob import glob
 from time import time
 from os.path import isfile
@@ -116,28 +117,26 @@ def alexnet_lstm(hist_size, weights_path=None):
 
     out = model.output_shape
     print(out)
-    # model.add(Reshape((hist_size, np.prod(out[2:]))))  # -1)))
-    # model.add(LSTM(4096, return_sequences=True, name='lstm_1'))
+    model.add(Reshape((4, 256*5*7)))
+    # model.add(Reshape((hist_size, -1)))  #  np.prod(out[2:]))))
+    model.add(LSTM(4096, return_sequences=True, name='lstm_1'))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(LSTM(4096, return_sequences=True, name='lstm_2'))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+
+    model.add(Dense(256, activation='relu', name='dense_1'))
+    model.add(Dropout(0.5))
+    # output: 14 affordances, gaussian std 0.01
+    model.add(Dense(14, activation='hard_sigmoid', name='dense_2'))
+
+    # model.add(LSTM(output_dim=256, return_sequences=True, name='dense_3'))
     # model.add(Activation('relu'))
     # model.add(Dropout(0.5))
-    # model.add(LSTM(4096, return_sequences=True, name='lstm_2'))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
-
-    model.add(Reshape((hist_size, np.prod(out[2:]))))  # -1)))
-    model.add(Dense(4096, activation='relu', name='dense_1'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu', name='dense_2'))
-    model.add(Dropout(0.5))
-
-    # # model.add(Flatten(name='flatten'))
-    # model.add(Dense(256, activation='relu', name='dense_3'))
-    # model.add(Dropout(0.5))
-
-    model.add(LSTM(output_dim=256, return_sequences=True, name='lstm_3'))
-    model.add(Dropout(0.5))
-    # output: 14 affordances
-    model.add(Dense(14, activation='hard_sigmoid', name='dense_4'))
+    # # output: 14 affordances
+    # model.add(LSTM(output_dim=14, return_sequences=False, name='dense_4'))
+    # model.add(Activation('hard_sigmoid'))
 
     model.summary()
     adam = Adam(lr=1e-4)
@@ -154,11 +153,13 @@ def get_data(db, keys, avg):
     Y_train = np.empty((n, 14))
 
     for i, key in enumerate(keys):
-        img = cv2.imread(key)
+        i#mg = cv2.imread(key)
+        img = Image.open(key)
         # img.shape = 210x280x3
         if not same_size:
-            img = cv2.resize(img, (227, 227))
+            img = img.resize((227, 227), Image.ANTIALIAS)
 
+        img = img.getdata()
         img = img.astype('float32')
 
         # convnet preprocessing using during training
@@ -194,13 +195,12 @@ def convert_sequence_no_overlap(X, Y, hist_size):
     n = X.shape[0] / hist_size  # number of sequences
     xdim = (n, hist_size) + dim
     X_seq = np.empty(xdim)
-    Y_seq = np.empty((n, hist_size, 14))
+    Y_seq = np.empty((n, 14))
 
     for j in range(n):
         i = j * hist_size
         X_seq[j] = X[i:(i + hist_size)]
-        # Y_seq[j] = Y[i + hist_size - 1]
-        Y_seq[j] = Y[i:(i + hist_size)]
+        Y_seq[j] = Y[i + hist_size - 1]
 
     return X_seq, Y_seq
 
@@ -210,13 +210,14 @@ def convert_sequence_sliding(X, Y, hist_size):
     '''
     n = X.shape[0] - hist_size + 1  # number of sequences
     xdim = (n, hist_size) + dim
+    ydim = (n, hist_size,14)
     X_seq = np.empty(xdim)
-    Y_seq = np.empty((n, hist_size, 14))
+    Y_seq = np.empty(ydim)
 
     for i in range(n):
         X_seq[i] = X[i:(i + hist_size)]
-        # Y_seq[i] = Y[i + hist_size - 1]
-        Y_seq[i] = Y[i:(i + hist_size)]
+        #Y_seq[i] = Y[i + hist_size - 1]
+        Y_seq[i] = Y[i:i + hist_size]
 
     return X_seq, Y_seq
 

@@ -11,6 +11,7 @@ from keras.layers import Activation, Dense, BatchNormalization, Dropout, Reshape
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD, Adam
 from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, TensorBoard
+#from keras.preprocessing import ImageDataGenerator
 from keras import backend as K
 import numpy as np
 import h5py
@@ -33,6 +34,7 @@ logs_path = folder + "models"
 model_filename = folder + 'models/model%d.json' % model_num
 weights_filename = folder + 'models/model_weights%d.h5' % model_num
 csvlog_filename = folder + 'models/model%d.csv' % model_num
+hist_size = 4  # History size
 
 #  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
 # tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
@@ -57,24 +59,39 @@ else:
 
 def train(db, keys, avg):
     m = 100000  # len(keys)  # dataset size
-    batch_size = 16  # powers of 2
+    batch_size = 32  # powers of 2
     stream_size = batch_size * 100  # 6400 images loaded at a time
+    val_stream_size = stream_size/5
     epochs = 5
-    hist_size = 4  # History size
+    samples = stream_size/batch_size
 
     if pretrained and isfile(weights_filename):
         model = alexnet_lstm(hist_size, weights_path=weights_filename)
     else:
         model = alexnet_lstm(hist_size)
+    
+ 
+    # datagen = ImageDataGenerator()
+    # datagen.fit(db)
+    # train_generator = datagen.flow_from_directory(db,target_size=(227,227),batch_size=batch_size)
+    for e in range(epochs):
+            print('epoch:',e)
+            for i in range(0,m,stream_size):
+                model.fit_generator(
+                    get_data(db,keys[i:(i + stream_size)], avg),
+                    samples_per_epoch = samples,
+                    initial_epoch = e,
+                    callbacks=[csvlog, reduce_lr, mdlchkpt])
 
-    for i in range(0, m, stream_size):
-        print(i, 'iteration')
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-        X_batch, Y_batch = convert_sequence_sliding(X_batch, Y_batch, hist_size)
-        model.fit(X_batch, Y_batch,
-                  batch_size=batch_size, epochs=epochs,
-                  validation_split=0.2, verbose=2,
-                  callbacks=[csvlog, reduce_lr, mdlchkpt])  # , tbCallBack])
+
+    # for i in range(0, m, stream_size):
+    #     print(i, 'iteration')
+    #     X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+    #     X_batch, Y_batch = convert_sequence_sliding(X_batch, Y_batch, hist_size)
+    #     model.fit(X_batch, Y_batch,
+    #               batch_size=batch_size, epochs=epochs,
+    #               validation_split=0.2, verbose=2,
+    #               callbacks=[csvlog, reduce_lr, mdlchkpt])  # , tbCallBack])
 
     return model
 
@@ -185,6 +202,8 @@ def get_data(db, keys, avg):
         affordances = affordances.reshape(1, 14)
         Y_train[i] = affordances
 
+    X_train,Y_train = convert_sequence_sliding(X_train, Y_train, hist_size)
+    #print(X_train, Y_train)
     return X_train, Y_train
 
 
