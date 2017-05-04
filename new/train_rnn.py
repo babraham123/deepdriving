@@ -20,6 +20,7 @@ from time import time
 from os.path import isfile
 start_time = time()
 
+#  tensorboard --logdir /home/lkara/deepdrive/deepdriving/new/models/
 # nohup python train.py &
 # ps -ef | grep train.py
 # kill UID
@@ -33,8 +34,7 @@ model_filename = folder + 'models/model%d.json' % model_num
 weights_filename = folder + 'models/model_weights%d.h5' % model_num
 csvlog_filename = folder + 'models/model%d.csv' % model_num
 
-#  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
-# tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
+tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
 csvlog = CSVLogger(csvlog_filename, separator=',', append=False)
 mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=True, save_weights_only=True, period=2, verbose=1)
 erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patience=10, verbose=1)
@@ -73,7 +73,7 @@ def train(db, keys, avg):
         model.fit(X_batch, Y_batch,
                   batch_size=batch_size, epochs=epochs,
                   validation_split=0.2, verbose=2,
-                  callbacks=[csvlog, reduce_lr, mdlchkpt])  # , tbCallBack])
+                  callbacks=[csvlog, reduce_lr, mdlchkpt, tbCallBack])
 
     return model
 
