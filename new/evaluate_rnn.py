@@ -12,7 +12,7 @@ def evaluate(db, keys, avg):
     m = len(keys)
     batch_size = 1  # 16
     stream_size = batch_size * 100  # ~10K images loaded at a time
-    hist_size = 4
+    hist_size = 2
 
     try:
         model = load_model(folder + "models/alexnet%d.h5" % model_num)

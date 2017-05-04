@@ -26,7 +26,7 @@ start_time = time()
 
 same_size = True
 pretrained = False
-model_num = 3
+model_num = 4
 folder = "/home/lkara/deepdrive/deepdriving/new/"
 logs_path = folder + "models"
 model_filename = folder + 'models/model%d.json' % model_num
@@ -59,7 +59,7 @@ def train(db, keys, avg):
     batch_size = 16  # powers of 2
     stream_size = batch_size * 100  # 6400 images loaded at a time
     epochs = 5
-    hist_size = 4  # History size
+    hist_size = 2  # History size
 
     if pretrained and isfile(weights_filename):
         model = alexnet_lstm(hist_size, weights_path=weights_filename)
@@ -133,7 +133,9 @@ def alexnet_lstm(hist_size, weights_path=None):
     # model.add(Dense(256, activation='relu', name='dense_3'))
     # model.add(Dropout(0.5))
 
-    model.add(LSTM(output_dim=256, return_sequences=True, name='lstm_3'))
+    model.add(LSTM(output_dim=512, return_sequences=True, name='lstm_3'))
+    model.add(Dropout(0.5))
+    model.add(LSTM(output_dim=256, return_sequences=True, name='lstm_4'))
     model.add(Dropout(0.5))
     # output: 14 affordances
     model.add(Dense(14, activation='hard_sigmoid', name='dense_4'))
