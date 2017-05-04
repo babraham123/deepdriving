@@ -14,6 +14,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping, ReduceLRO
 #from keras.preprocessing import ImageDataGenerator
 from keras import backend as K
 import numpy as np
+from random import randint
 import h5py
 import cv2
 from glob import glob
@@ -57,7 +58,7 @@ else:
         dim = (3, 227, 227)
 
 
-def train(db, keys, avg):
+def train(db, keys):
     m = 100000  # len(keys)  # dataset size
     batch_size = 32  # powers of 2
     stream_size = batch_size * 100  # 6400 images loaded at a time
@@ -74,14 +75,21 @@ def train(db, keys, avg):
     # datagen = ImageDataGenerator()
     # datagen.fit(db)
     # train_generator = datagen.flow_from_directory(db,target_size=(227,227),batch_size=batch_size)
-    for e in range(epochs):
-            print('epoch:',e)
-            for i in range(0,m,stream_size):
-                model.fit_generator(
-                    get_data(db,keys[i:(i + stream_size)], avg),
-                    samples_per_epoch = samples,
-                    initial_epoch = e,
-                    callbacks=[csvlog, reduce_lr, mdlchkpt])
+    # for e in range(epochs):
+    #         print('epoch:',e)
+    #         for i in range(0,m,stream_size):
+    #             model.fit_generator(
+    #                 get_data(db, keys[i:(i + stream_size)], batch_size),
+    #                 steps_per_epoch = samples,
+    #                 epochs = 1,
+    #                 callbacks=[csvlog, reduce_lr, mdlchkpt])
+    model.fit_generator(
+        get_data(db, keys[0:m], batch_size),
+        samples_per_epoch = samples,
+        nb_epochs = e,
+        callbacks=[csvlog, reduce_lr, mdlchkpt])
+
+
 
 
     # for i in range(0, m, stream_size):
@@ -163,14 +171,24 @@ def alexnet_lstm(hist_size, weights_path=None):
     return model
 
 
-def get_data(db, keys, avg):
+def get_data(db, keys, batch_size):
     n = len(keys)
+    # max_epoch = n/(batch_size+4)
+    # for index in range(0,max_epoch):
+    max_n = n-hist_size-batch_size #-batch_size-hist_size
+    index = randint(0,max_n)
+    n_keys = keys[index:(index+35)] #+batch_size
+    avg = load_average()
+    # avg.shape = 210x280x3
+    if not same_size:
+        avg = cv2.resize(avg, (227, 227))
 
-    xdim = (n,) + dim
+    inp_size = batch_size+hist_size
+    xdim = (inp_size,) + dim
     X_train = np.empty(xdim)
-    Y_train = np.empty((n, 14))
+    Y_train = np.empty((inp_size, 14))
 
-    for i, key in enumerate(keys):
+    for i, key in enumerate(n_keys):
         img = cv2.imread(key)
         # img.shape = 210x280x3
         if not same_size:
@@ -178,11 +196,6 @@ def get_data(db, keys, avg):
 
         img = img.astype('float32')
 
-        # convnet preprocessing using during training
-        # img[:, :, 0] -= 123.68
-        # img[:, :, 1] -= 116.779
-        # img[:, :, 2] -= 103.939
-        # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         img = img / 255.0
         img = np.subtract(img, avg)
@@ -203,31 +216,17 @@ def get_data(db, keys, avg):
         Y_train[i] = affordances
 
     X_train,Y_train = convert_sequence_sliding(X_train, Y_train, hist_size)
-    #print(X_train, Y_train)
-    return X_train, Y_train
+    print(X_train.shape, Y_train.shape)
 
+    yield X_train, Y_train
 
-def convert_sequence_no_overlap(X, Y, hist_size):
-    '''convert dataset into a series of non-overlapping sequences
-    '''
-    n = X.shape[0] / hist_size  # number of sequences
-    xdim = (n, hist_size) + dim
-    X_seq = np.empty(xdim)
-    Y_seq = np.empty((n, hist_size, 14))
-
-    for j in range(n):
-        i = j * hist_size
-        X_seq[j] = X[i:(i + hist_size)]
-        # Y_seq[j] = Y[i + hist_size - 1]
-        Y_seq[j] = Y[i:(i + hist_size)]
-
-    return X_seq, Y_seq
 
 
 def convert_sequence_sliding(X, Y, hist_size):
     '''convert dataset into a sliding window series of sequences
     '''
-    n = X.shape[0] - hist_size + 1  # number of sequences
+    n = X.shape[0] - hist_size  # number of sequences
+    print('batch size is:', n)
     xdim = (n, hist_size) + dim
     X_seq = np.empty(xdim)
     Y_seq = np.empty((n, hist_size, 14))
@@ -301,12 +300,9 @@ if __name__ == "__main__":
 
     db = db.astype('float32')
 
-    avg = load_average()
-    # avg.shape = 210x280x3
-    if not same_size:
-        avg = cv2.resize(avg, (227, 227))
+   
 
-    model = train(db, keys, avg)
+    model = train(db, keys)
 
     model.save(folder + "models/alexnet%d.h5" % model_num)
     print("Time taken is %s seconds " % (time() - start_time))
