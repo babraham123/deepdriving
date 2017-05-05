@@ -59,47 +59,21 @@ else:
 
 
 def train(db, keys):
-    m = 100000  # len(keys)  # dataset size
-    batch_size = 32  # powers of 2
-    stream_size = batch_size * 100  # 6400 images loaded at a time
-    val_stream_size = stream_size/5
+    m = 1100000  # len(keys)  # dataset size
+    batch_size = 16  # powers of 2
     epochs = 5
-    samples = stream_size/batch_size
+    samples = m/batch_size
 
     if pretrained and isfile(weights_filename):
         model = alexnet_lstm(hist_size, weights_path=weights_filename)
     else:
         model = alexnet_lstm(hist_size)
     
- 
-    # datagen = ImageDataGenerator()
-    # datagen.fit(db)
-    # train_generator = datagen.flow_from_directory(db,target_size=(227,227),batch_size=batch_size)
-    # for e in range(epochs):
-    #         print('epoch:',e)
-    #         for i in range(0,m,stream_size):
-    #             model.fit_generator(
-    #                 get_data(db, keys[i:(i + stream_size)], batch_size),
-    #                 steps_per_epoch = samples,
-    #                 epochs = 1,
-    #                 callbacks=[csvlog, reduce_lr, mdlchkpt])
     model.fit_generator(
         get_data(db, keys[0:m], batch_size),
-        samples_per_epoch = samples,
-        nb_epochs = e,
+        steps_per_epoch = samples,
+        epochs = epochs,
         callbacks=[csvlog, reduce_lr, mdlchkpt])
-
-
-
-
-    # for i in range(0, m, stream_size):
-    #     print(i, 'iteration')
-    #     X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
-    #     X_batch, Y_batch = convert_sequence_sliding(X_batch, Y_batch, hist_size)
-    #     model.fit(X_batch, Y_batch,
-    #               batch_size=batch_size, epochs=epochs,
-    #               validation_split=0.2, verbose=2,
-    #               callbacks=[csvlog, reduce_lr, mdlchkpt])  # , tbCallBack])
 
     return model
 
@@ -172,53 +146,50 @@ def alexnet_lstm(hist_size, weights_path=None):
 
 
 def get_data(db, keys, batch_size):
-    n = len(keys)
-    # max_epoch = n/(batch_size+4)
-    # for index in range(0,max_epoch):
-    max_n = n-hist_size-batch_size #-batch_size-hist_size
-    index = randint(0,max_n)
-    n_keys = keys[index:(index+35)] #+batch_size
+    step_size = batch_size+hist_size
+    steps = len(keys)/(step_size)
+    steps = int(steps)
     avg = load_average()
-    # avg.shape = 210x280x3
     if not same_size:
         avg = cv2.resize(avg, (227, 227))
 
-    inp_size = batch_size+hist_size
-    xdim = (inp_size,) + dim
-    X_train = np.empty(xdim)
-    Y_train = np.empty((inp_size, 14))
+    print('STEPS:', steps)
+    for index in range(0,steps):
+        n_keys = keys[index:(index+step_size-1)] #+batch_size
 
-    for i, key in enumerate(n_keys):
-        img = cv2.imread(key)
-        # img.shape = 210x280x3
-        if not same_size:
-            img = cv2.resize(img, (227, 227))
+        xdim = (step_size,) + dim
+        X_train = np.empty(xdim)
+        Y_train = np.empty((step_size, 14))
 
-        img = img.astype('float32')
+        for i, key in enumerate(n_keys):
+            img = cv2.imread(key)
+            if not same_size:
+                img = cv2.resize(img, (227, 227))
+
+            img = img.astype('float32')
 
 
-        img = img / 255.0
-        img = np.subtract(img, avg)
-        if K.image_dim_ordering() == 'th':
-            img = np.swapaxes(img, 1, 2)
-            img = np.swapaxes(img, 0, 1)
+            img = img / 255.0
+            img = np.subtract(img, avg)
+            if K.image_dim_ordering() == 'th':
+                img = np.swapaxes(img, 1, 2)
+                img = np.swapaxes(img, 0, 1)
 
-        X_train[i] = img
+            X_train[i] = img
 
-        j = int(key[-12:-4])
-        affordances = db[j - 1]
-        if int(affordances[0]) != j:
-            raise ValueError('Image and affordance do not match: ' + str(j))
-        affordances = affordances[1:]
+            j = int(key[-12:-4])
+            affordances = db[j - 1]
+            if int(affordances[0]) != j:
+                raise ValueError('Image and affordance do not match: ' + str(j))
+            affordances = affordances[1:]
 
-        affordances = scale_output(affordances)
-        affordances = affordances.reshape(1, 14)
-        Y_train[i] = affordances
+            affordances = scale_output(affordances)
+            affordances = affordances.reshape(1, 14)
+            Y_train[i] = affordances
 
-    X_train,Y_train = convert_sequence_sliding(X_train, Y_train, hist_size)
-    print(X_train.shape, Y_train.shape)
+        X_train,Y_train = convert_sequence_sliding(X_train, Y_train, hist_size)
 
-    yield X_train, Y_train
+        yield X_train, Y_train
 
 
 
@@ -226,7 +197,6 @@ def convert_sequence_sliding(X, Y, hist_size):
     '''convert dataset into a sliding window series of sequences
     '''
     n = X.shape[0] - hist_size  # number of sequences
-    print('batch size is:', n)
     xdim = (n, hist_size) + dim
     X_seq = np.empty(xdim)
     Y_seq = np.empty((n, hist_size, 14))
