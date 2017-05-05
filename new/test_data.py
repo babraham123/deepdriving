@@ -18,9 +18,9 @@ def test_data(db, keys, avg):
         Y[i:(i + stream_size)] = Y_batch
 
     mean = Y.mean(axis=0)
-    maxx = Y.amax(axis=0)
-    minn = Y.amin(axis=0)
-    std = Y.std(axis=0)
+    maxx = np.amax(Y, axis=0)
+    minn = np.amin(Y, axis=0)
+    std = np.std(Y, axis=0)
     return mean[display_idx], maxx[display_idx], minn[display_idx], std[display_idx]
 
 
