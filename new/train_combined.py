@@ -28,6 +28,7 @@ start_time = time()
 same_size = True
 pretrained = False
 model_num = 2
+display_idx = np.array([0, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5])
 folder = "/home/lkara/deepdrive/deepdriving/new/"
 logs_path = folder + "models"
 model_filename = folder + 'models/model%d.json' % model_num
