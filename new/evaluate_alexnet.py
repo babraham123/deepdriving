@@ -37,7 +37,7 @@ def evaluate(db, keys, avg):
 
     mae = error.mean(axis=0)
     mse = error2.mean(axis=0)
-    return mae, mse
+    return mae[display_idx], mse[display_idx]
 
 
 if __name__ == "__main__":
