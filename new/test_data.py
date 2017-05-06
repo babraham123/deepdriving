@@ -8,14 +8,13 @@ from train_combined import *
 
 def test_data(db, keys, avg):
     m = len(keys)
-    batch_size = 16
-    stream_size = batch_size * 500  # ~10K images loaded at a time
-
     Y = np.empty((m, 14))
-    for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+    Y[:] = db[:, 1:]
 
-        Y[i:(i + stream_size)] = Y_batch
+    # for i, key in enumerate(keys):
+    #     j = int(key[-12:-4])
+    #     affordances = db[j - 1]
+    #     affordances = scale_output(affordances)
 
     mean = Y.mean(axis=0)
     maxx = np.amax(Y, axis=0)
