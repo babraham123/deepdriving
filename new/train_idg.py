@@ -27,11 +27,11 @@ start_time = time()
 
 same_size = True
 pretrained = False
-model_num = 2
+model_num = 5
 folder = "/home/lkara/deepdrive/deepdriving/new/"
 logs_path = folder + "models"
-model_filename = folder + 'models/model%d.json' % model_num
-weights_filename = folder + 'models/model_weights%d.h5' % model_num
+model_filename = folder + 'models/cnnmodel%d.json' % model_num
+weights_filename = folder + 'models/cnnmodel%d_weights.h5' % model_num
 csvlog_filename = folder + 'models/model%d.csv' % model_num
 
 #  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
@@ -56,12 +56,13 @@ else:
 
 
 def train(db, keys, avg):
-    m = len(keys)  # len(keys)
+    #m = len(keys)  # len(keys)
+    m = 10000
 
-    batch_size = 32  # powers of 2
-    stream_size = batch_size * 500  # 8K images loaded at a time
-    epochs = 5
-    samples = m/batch_size
+    batch_size = 128#32  # powers of 2
+    #stream_size = batch_size * 500  # 8K images loaded at a time
+    epochs = 10
+    samples = int(m/batch_size) - 1
     if pretrained and isfile(weights_filename):
         model = alexnet(weights_path=weights_filename)
     else:
@@ -82,7 +83,7 @@ def train(db, keys, avg):
     model.fit_generator(
         our_datagen(db, keys[0:m], avg, batch_size),
         steps_per_epoch = samples,
-        epochs = 5,
+        epochs = epochs,
         callbacks=[csvlog, reduce_lr, mdlchkpt])
 
 
