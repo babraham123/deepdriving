@@ -56,7 +56,7 @@ class Agent(object):
         '''
 
         if vision_on:
-            focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, vision = ob
+            focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, affordances, vision = ob
             '''
             The code below is for checking the vision input. 
             This is very heavy for real-time Control
@@ -71,12 +71,13 @@ class Agent(object):
             '''
 
             im = self.preprocess_image(vision)
-            affordances = self.model.predict(im)
+            predict_affordances = self.model.predict(im)
+            affordances.tolist()
             action = controller(affordances, self.prev_affordances, self.state)
             self.prev_affordances = affordances
 
         else:
-            focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel = ob
+            focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, affordances = ob
             action = np.tanh(np.random.randn(2))  # random action
 
         # action = (steering angle, throttle amt)
