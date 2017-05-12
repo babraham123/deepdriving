@@ -1,13 +1,11 @@
-from train_combined import *
 from keras.models import model_from_json
-from avimodel.train_idg
 
 # source activate deepenv1
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
 # tail -f nohup.out
 # kill UID
-def get_data(db, keys, avg):
+def test_data(db, keys, avg):
     n = len(keys)
 
     xdim = (n,) + dim
@@ -36,7 +34,7 @@ def get_data(db, keys, avg):
 
         X_train[i] = img
 
-    return X_train, Y_train
+    return X_train
 
 def evaluate(db, keys, avg):
     m = len(keys)
@@ -57,7 +55,7 @@ def evaluate(db, keys, avg):
     error2 = np.empty((m, 14))
 
     for i in range(0, m, stream_size):
-        X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
+        X_batch, Y_batch = test_data(db, keys[i:(i + stream_size)], avg)
 
         Y_predict = model.predict(X_batch, batch_size=batch_size, verbose=1)
         for k in range(Y_predict.shape[0]):
