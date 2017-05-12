@@ -1,12 +1,42 @@
 from train_combined import *
 from keras.models import model_from_json
+from avimodel.train_idg
 
 # source activate deepenv1
 # nohup python evaluate.py &
 # ps -ef | grep evaluate.py
 # tail -f nohup.out
 # kill UID
+def get_data(db, keys, avg):
+    n = len(keys)
 
+    xdim = (n,) + dim
+    X_train = np.empty(xdim)
+    Y_train = np.empty((n, 14))
+
+    for i, key in enumerate(keys):
+        img = cv2.imread(key)
+        # img.shape = 210x280x3
+        if not same_size:
+            img = cv2.resize(img, (227, 227))
+
+        img = img.astype('float32')
+
+        # convnet preprocessing using during training
+        # img[:, :, 0] -= 123.68
+        # img[:, :, 1] -= 116.779
+        # img[:, :, 2] -= 103.939
+        # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        img = img / 255.0
+        img = np.subtract(img, avg)
+        if K.image_dim_ordering() == 'th':
+            img = np.swapaxes(img, 1, 2)
+            img = np.swapaxes(img, 0, 1)
+
+        X_train[i] = img
+
+    return X_train, Y_train
 
 def evaluate(db, keys, avg):
     m = len(keys)
