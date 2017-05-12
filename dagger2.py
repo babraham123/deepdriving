@@ -1,4 +1,4 @@
-from gym_torcs import TorcsEnv
+from gym_torcs2 import TorcsEnv
 import numpy as np
 
 img_dim = [64,64,3]
@@ -18,38 +18,48 @@ def img_reshape(input_img):
     _img = np.reshape(_img, (1, img_dim[0], img_dim[1], img_dim[2]))
     return _img
 
-images_all = np.zeros((0, img_dim[0], img_dim[1], img_dim[2]))
-actions_all = np.zeros((0,action_dim))
-rewards_all = np.zeros((0,))
+# images_all = np.zeros((0, img_dim[0], img_dim[1], img_dim[2]))
+# actions_all = np.zeros((0,action_dim))
+# rewards_all = np.zeros((0,))
 
-img_list = []
-action_list = []
-reward_list = []
+# img_list = []
+# action_list = []
+# reward_list = []
 
-env = TorcsEnv(vision=True, throttle=False)
-ob = env.reset(relaunch=True)
+# env = TorcsEnv(vision=True, throttle=False)
+# ob = env.reset(relaunch=True)
 
-print('Collecting data...')
-for i in range(steps):
-    if i == 0:
-        act = np.array([0.0])
-    else:
-        act = get_teacher_action(ob)
+# print('Collecting data...')
+# for i in range(steps):
+#     if i == 0:
+#         act = np.array([0.0])
+#     else:
+#         act = get_teacher_action(ob)
 
-    if i%100 == 0:
-        print(i)
-    ob, reward, done, _ = env.step(act)
-    img_list.append(ob.img)
-    action_list.append(act)
-    reward_list.append(np.array([reward]))
+#     if i%100 == 0:
+#         print(i)
+#     ob, reward, done, _ = env.step(act)
+#     img_list.append(ob.img)
+#     action_list.append(act)
+#     reward_list.append(np.array([reward]))
 
-env.end()
+# env.end()
 
-print('Packing data into arrays...')
-for img, act, rew in zip(img_list, action_list, reward_list):
-    images_all = np.concatenate([images_all, img_reshape(img)], axis=0)
-    actions_all = np.concatenate([actions_all, np.reshape(act, [1,action_dim])], axis=0)
-    rewards_all = np.concatenate([rewards_all, rew], axis=0)
+# print('Packing data into arrays...')
+# for img, act, rew in zip(img_list, action_list, reward_list):
+#     images_all = np.concatenate([images_all, img_reshape(img)], axis=0)
+#     actions_all = np.concatenate([actions_all, np.reshape(act, [1,action_dim])], axis=0)
+#     rewards_all = np.concatenate([rewards_all, rew], axis=0)
+
+
+
+f = h5py.File('training_images.h5','r')
+images_all = f['train_ims'][:]
+f.close()
+f = h5py.File('training_actions.h5','r')
+actions_all = f['train_acts'][:]
+f.close()
+
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
