@@ -1,4 +1,4 @@
-from keras.models import Sequential, Model
+from keras.models import Model, model_from_json
 from keras.layers import Flatten, Dense, BatchNormalization, Dropout, Reshape, Permute, Activation, Input
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD, Adam
@@ -20,11 +20,8 @@ start_time = time()
 # kill UID
 
 
-def train(db, keys, avg, batch_size, epochs, nb_tr, nb_val , samples=None, val_samples=None):
-    #m = len(keys)  # len(keys)
-    #m = 400000
-    #batch_size = 64  # powers of 2
-    #epochs = 45    
+def train(db, keys, avg, batch_size, epochs, nb_tr, nb_val , samples=None, val_samples=None, labels=True, scale_affords= False):
+
     if samples is None:
         samples = int(nb_tr/batch_size)
     if val_samples is None:
@@ -35,23 +32,10 @@ def train(db, keys, avg, batch_size, epochs, nb_tr, nb_val , samples=None, val_s
     else:
         model = alexnet()
 
-    # for layer in base_model.layers:
-    #     layer.trainable = False
-    # x = base_model.output
-    # x = Dense(512, activation='relu', init='glorot_normal', name='fc1')(x)
-
-    # train_datagen = ImageDataGenerator(
-    #     rescale=1./255,
-    #     shear_range=0.2,
-    #     zoom_range=0.2,
-    #     horizontal_flip=True)
-
-    # train_generator = train_datagen.flow_from_directory()
-
-    model.fit_generator( our_datagen(db, keys[0:nb_tr], avg, batch_size),
+    model.fit_generator( our_datagen(db, keys[0:nb_tr], avg, batch_size, labels=True,scale_affords=scale_out),
         samples_per_epoch = samples, nb_epoch = epochs,
         verbose=2, callbacks=[csvlog, reduce_lr, mdlchkpt,tbCallBack],
-         validation_data=our_datagen(db, keys[nb_tr:nb_tr+nb_val], avg, batch_size),
+         validation_data=our_datagen(db, keys[nb_tr:nb_tr+nb_val], avg, batch_size, labels=True,scale_affords=scale_out),
          nb_val_samples=val_samples)
 
     model.save(model_filename)
@@ -76,22 +60,27 @@ def alexnet(weights_path=None):
     # in caffe: Local Response Normalization (LRN)
 
     # alpha = 1e-4, k=2, beta=0.75, n=5,
-    conv_2 = ZeroPadding2D((2, 2))(conv_2)
+    #conv_2 = ZeroPadding2D((2, 2))(conv_2)
     conv_2 = Convolution2D(256, 5, 5, activation="relu", name='conv_2')(conv_2)
 
     conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
     conv_3 = BatchNormalization()(conv_3)
-    conv_3 = ZeroPadding2D((1, 1))(conv_3)
+    
+    #conv_3 = ZeroPadding2D((1, 1))(conv_3)
     conv_3 = Convolution2D(384, 3, 3, activation='relu', name='conv_3')(conv_3)
 
-    conv_4 = ZeroPadding2D((1, 1))(conv_3)
-    conv_4 = Convolution2D(384, 3, 3, activation="relu", name='conv_4')(conv_4)
+    #conv_3 = ZeroPadding2D((1, 1))(conv_3)
+    conv_4 = Convolution2D(384, 3, 3, activation="relu", name='conv_4')(conv_3)
 
-    conv_5 = ZeroPadding2D((1, 1))(conv_4)
-    conv_5 = Convolution2D(256, 3, 3, activation="relu", name='conv_5')(conv_5)
-    dense_1 = MaxPooling2D((3, 3), strides=(2, 2), name="convpool_5")(conv_5)
-
-    dense_1 = Flatten(name="flatten")(dense_1)
+    #conv_4 = ZeroPadding2D((1, 1))(conv_4)
+    conv_5 = Convolution2D(256, 3, 3, activation="relu", name='conv_5')(conv_4)
+    
+    if same_size is True:
+        dense_1 = MaxPooling2D((3, 3), strides=(2, 2), name="convpool_5")(conv_5)
+        dense_1 = Flatten(name="flatten")(dense_1)
+    else:    
+        dense_1 = Flatten(name="flatten")(conv_5)#(dense_1)
+    
     # initial weights filler? gaussian, std 0.005
     dense_1 = Dense(4096, activation='relu', name='dense_1')(dense_1)
     dense_2 = Dropout(0.5)(dense_1)
@@ -109,19 +98,19 @@ def alexnet(weights_path=None):
 
     model = Model(input=inputs, output=dense_4)
     model.summary()
-    model.save('cnn_model_test.h5')
-    print('saved model')
+    raw_input("Press Enter to continue...")  
+    
     if weights_path:
         model.load_weights(weights_path)
 
     # sgd = SGD(lr=0.01, decay=0.0005, momentum=0.9)  # nesterov=True) # LSTM
-    adam = Adam(lr=1e-3)
+    adam = Adam(lr=5e-4)
     model.compile(optimizer=adam, loss='mse',metrics=['mae'])  # try cross-entropy
 
     return model
 
 
-def our_datagen(db, keys, avg,batch_size,labels=True):
+def our_datagen(db, keys, avg,batch_size,labels=True,scale_affords=False):
     n = len(keys)/batch_size
     n = int(n)
     affordance_dim = 13
@@ -134,7 +123,7 @@ def our_datagen(db, keys, avg,batch_size,labels=True):
             img = cv2.imread(key)
             # img.shape = 210x280x3
             if not same_size:
-                img = cv2.resize(img, (227, 227))
+                img = cv2.resize(img, (64, 64))
 
             img = img / 255.0
             img = np.subtract(img, avg)
@@ -150,7 +139,8 @@ def our_datagen(db, keys, avg,batch_size,labels=True):
                 if int(affordances[0]) != j:
                     raise ValueError('Image and affordance do not match: ' + str(j))
                 affordances = affordances[1:(affordance_dim+1)]
-                affordances = scale_output(affordances)
+                if scale_affords is True:
+                    affordances = scale_output(affordances)
                 affordances = affordances.reshape(1, affordance_dim)
                 Y_train[i] = affordances
             
@@ -159,21 +149,25 @@ def our_datagen(db, keys, avg,batch_size,labels=True):
             else:
                 yield X_train
                 
-def predict_affordances(db, keys, avg, model, batch_size, verbose = 0):
+def predict_affordances(db, keys, avg, model, batch_size, verbose = 0, scale_affords=False):
     nb_ts = len(keys)
     nb = int(nb_ts/batch_size)    
     affordance_dim = 13
+    Y_true = np.zeros((nb*batch_size, affordance_dim))
     Y_pred = np.zeros((nb*batch_size, affordance_dim))
+    err = np.zeros((nb*batch_size, affordance_dim))
+    err_avg = np.zeros((1, affordance_dim))
+    
     for index in range(0,nb):
-        xdim = (batch_size,) + dim
-        X_train = np.zeros(xdim)
+        #xdim = (batch_size,) + dim
+        #X_train = np.zeros(xdim)
         #Y_train = np.zeros((batch_size, affordance_dim))
 
         for i, key in enumerate(keys[index:(index+batch_size)]):
             img = cv2.imread(key)
             # img.shape = 210x280x3
             if not same_size:
-                img = cv2.resize(img, (227, 227))
+                img = cv2.resize(img, (64, 64))
 
             img = img / 255.0
             img = np.subtract(img, avg)
@@ -181,25 +175,29 @@ def predict_affordances(db, keys, avg, model, batch_size, verbose = 0):
                 img = np.swapaxes(img, 1, 2)
                 img = np.swapaxes(img, 0, 1)
 
-            X_train[i] = img
+            img = np.expand_dims(img, axis=0)
             
             j = int(key[-12:-4])
             affordances = db[j - 1]
             if int(affordances[0]) != j:
                 raise ValueError('Image and affordance do not match: ' + str(j))
             affordances = affordances[1:(affordance_dim+1)]
-            #affordances = scale_output(affordances)
+            if scale_affords is True:
+                affordances = scale_output(affordances)
             affordances = affordances.reshape(1, affordance_dim)
-            Y_pred[i + (index*batch_size)] = affordances
-        
+            affords_pred = model.predict(img)
+            Y_true[i + (index*batch_size)] = affordances
+            Y_pred[i + (index*batch_size)] = affords_pred
+            err[i + (index*batch_size)] = np.abs(affords_pred - affordances)
         #predict.append(Y_train)
         if verbose is 1:
             test = (index+1)*batch_size
             print('Number of samples predicted so far:' + str(test))
-            
-    return Y_pred
+   
+    err_avg = err.mean(axis=0)   
+        
+    return Y_pred, Y_true, err, err_avg
                 
-
 
 def scale_output(affordances):
     ''' Scale output between [0.1, 0.9]
@@ -224,25 +222,27 @@ def scale_output(affordances):
     return affordances
 
 
-def descale_output(affordances):
-    affordances[:,0] = (affordances[:,0] - 0.5) * 1.1
+def descale_output(affordances): 
+    affordances_unnorm = np.zeros(affordances.shape)    
+    
+    affordances_unnorm[:,0] = (affordances[:,0] - 0.5) * 1.1
 
-    affordances[:,1] = (affordances[:,1] - 1.34445) * 5.6249
-    affordances[:,2] = (affordances[:,2] - 0.39091) * 6.8752
-    affordances[:,3] = (affordances[:,3] + 0.34445) * 5.6249
+    affordances_unnorm[:,1] = (affordances[:,1] - 1.34445) * 5.6249
+    affordances_unnorm[:,2] = (affordances[:,2] - 0.39091) * 6.8752
+    affordances_unnorm[:,3] = (affordances[:,3] + 0.34445) * 5.6249
 
-    affordances[:,4] = (affordances[:,4] - 0.12) * 95
-    affordances[:,5] = (affordances[:,5] - 0.12) * 95
+    affordances_unnorm[:,4] = (affordances[:,4] - 0.12) * 95
+    affordances_unnorm[:,5] = (affordances[:,5] - 0.12) * 95
 
-    affordances[:,6] = (affordances[:,6] - 1.48181) * 6.8752
-    affordances[:,7] = (affordances[:,7] - 0.98) * 6.25
-    affordances[:,8] = (affordances[:,8] - 0.02) * 6.25
-    affordances[:,9] = (affordances[:,9] + 0.48181) * 6.8752
+    affordances_unnorm[:,6] = (affordances[:,6] - 1.48181) * 6.8752
+    affordances_unnorm[:,7] = (affordances[:,7] - 0.98) * 6.25
+    affordances_unnorm[:,8] = (affordances[:,8] - 0.02) * 6.25
+    affordances_unnorm[:,9] = (affordances[:,9] + 0.48181) * 6.8752
 
-    affordances[:,10] = (affordances[:,10] - 0.12) * 95
-    affordances[:,11] = (affordances[:,11] - 0.12) * 95
-    affordances[:,12] = (affordances[:,12] - 0.12) * 95
-    return affordances
+    affordances_unnorm[:,10] = (affordances[:,10] - 0.12) * 95
+    affordances_unnorm[:,11] = (affordances[:,11] - 0.12) * 95
+    affordances_unnorm[:,12] = (affordances[:,12] - 0.12) * 95
+    return affordances_unnorm
 
 def load_average():
     h5f = h5py.File('/home/exx/Avinash/DReD/local/deepdriving_average.h5', 'r')
@@ -258,15 +258,7 @@ if __name__ == "__main__":
     
     #keys.sort()
     
-#    keys2 = []
-#    for j in np.arange(0,len(keys)):
-#        if len(keys[j])==44:
-#            keys2.append(keys[j])
-#            print(j)
-#
-#    keys = keys2
     
-
     db = np.load(dbpath + 'affordances.npy')
 
     # TODO : shuffle and keep aligned
@@ -275,10 +267,10 @@ if __name__ == "__main__":
 
     avg = load_average()
         
-        
+    scale_out = False    
     same_size = True
     pretrained = False
-    model_num = 1
+    model_num = 9
     folder = "/home/exx/Avinash/DReD/local/"
     
     model_filename = folder + 'models/cnnmodel%d.json' % model_num
@@ -291,7 +283,7 @@ if __name__ == "__main__":
     tbCallBack = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=False)
     csvlog = CSVLogger(csvlog_filename, separator=',', append=False)
     mdlchkpt = ModelCheckpoint(weights_filename, monitor='val_loss', save_best_only=True, save_weights_only=True, period=2, verbose=1)
-    erlystp = EarlyStopping(monitor='val_mean_absolute_error', min_delta=1e-4, patience=10, verbose=1)
+    erlystp = EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=10, verbose=1)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=1e-5, verbose=1)
     
     if K.image_dim_ordering() == 'tf':
@@ -299,33 +291,57 @@ if __name__ == "__main__":
         if same_size:
             dim = (210, 280, 3)
         else:
-            dim = (227, 227, 3)
+            dim = (64, 64, 3)
     else:
         print('Theano')
         if same_size:
             dim = (3, 210, 280)
         else:
-            dim = (3, 227, 227)
+            dim = (3, 64, 64)
 
     # avg.shape = 210x280x3
     if not same_size:
-        avg = cv2.resize(avg, (227, 227))
+        avg = cv2.resize(avg, (64, 64))
 
-    batch_size = 64
-    epochs = 45
-    nb_tr = 300000
-    nb_val = 100000
-    nb_ts = 84800
-    model = train(db, keys, avg, batch_size, epochs, nb_tr, nb_val , samples=None, val_samples=None)
-    model.load_weights(weights_filename)    
+    batch_size = 32
+    epochs = 25
+    nb_tr = 350000
+    nb_val = 50000
+    nb_ts = 5056 #84800
+    if os.path.exists(model_filename):
+        json_file = open(model_filename, 'r')
+        model_json = json_file.read()
+        json_file.close()
+        print('Model found and loading ...')        
+        model = model_from_json(model_json)
+        print("Loading the best weights for evaluation")                
+        model.load_weights(weights_filename)  
+        adam = Adam(lr=5e-4)
+        model.compile(optimizer=adam, loss='mse',metrics=['mae'])  # try cross-entropy                  
+    else:
+        print('New model is built and training...')
+        model = train(db, keys, avg, batch_size, epochs, nb_tr, nb_val , samples=None, val_samples=None, labels=True,scale_affords=scale_out)
+        print("Loading the best weights for evaluation")
+        model.load_weights(weights_filename)   
+        
+        # saving the model to disk        
+        model_json = model.to_json()
+        with open(model_filename, "w") as json_file:
+            json_file.write(model_json)
+        print("Saved model to disk")
     
     ts_samples = int(nb_ts/batch_size)
     score = model.evaluate_generator(our_datagen(db, keys[nb_tr+nb_val:nb_tr+nb_val+nb_ts], avg, batch_size), ts_samples) 
     print('TestData MSE:', score[0])
     print('TestData MAE', score[1])
     
-    affords_pred = predict_affordances(db, keys[nb_tr+nb_val:nb_tr+nb_val+nb_ts], avg, model, batch_size, verbose=1)
-    affords_true = db
-    #predict = model.predict_generator(our_datagen(db, keys[400000:(400000+mt)], avg, 6400, labels=False), 1)
-
+    Y_pred, Y_true, err, err_avg = predict_affordances(db, keys[nb_tr+nb_val:nb_tr+nb_val+nb_ts], avg, model, batch_size, verbose=1, scale_affords = scale_out)
+   
+    if scale_out is True:
+        Y_pred_unnorm = descale_output(Y_pred)
+        Y_true_unnorm = descale_output(Y_true)
+        err = descale_output(err)    
+        err_avg = descale_output(err_avg.reshape(1,13))
+    
+    
     print("Time taken is %s seconds " % (time() - start_time))
