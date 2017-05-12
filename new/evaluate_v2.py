@@ -1,5 +1,5 @@
 from train_combined import *
-from keras.models import load_model
+from keras.models import model_from_json
 
 # source activate deepenv1
 # nohup python evaluate.py &
@@ -13,7 +13,15 @@ def evaluate(db, keys, avg):
     batch_size = 1  # 16
     stream_size = batch_size * 500  # ~10K images loaded at a time
 
-    model = load_model("folder/model.h5")
+    model_name = "avimodel/cnnmodel9.json"
+
+
+
+    json_file = open(model_name, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+    model.load_weights("avimodel/cnnmodel9_weights.h5")
 
     error = np.empty((m, 14))
     error2 = np.empty((m, 14))
