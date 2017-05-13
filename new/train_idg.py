@@ -18,6 +18,8 @@ import cv2
 from glob import glob
 from time import time
 from os.path import isfile
+from matplotlib import pyplot as plt
+
 start_time = time()
 
 # source activate deepenv1
@@ -27,11 +29,11 @@ start_time = time()
 
 same_size = True
 pretrained = False
-model_num = 5
+model_num = 7
 folder = "/home/lkara/deepdrive/deepdriving/new/"
 logs_path = folder + "models"
 model_filename = folder + 'models/cnnmodel%d.json' % model_num
-weights_filename = folder + 'models/cnnmodel%d_weights.h5' % model_num
+weights_filename = folder + 'models/acnnmodel%d_weights.h5' % model_num
 csvlog_filename = folder + 'models/model%d.csv' % model_num
 
 #  tensorboard --logdir /home/lkara/deepdrive/deepdriving/models/
@@ -57,7 +59,7 @@ else:
 
 def train(db, keys, avg):
     #m = len(keys)  # len(keys)
-    m = 10000
+    m = 100000
 
     batch_size = 128#32  # powers of 2
     #stream_size = batch_size * 500  # 8K images loaded at a time
@@ -71,7 +73,8 @@ def train(db, keys, avg):
     #     layer.trainable = False
     # x = base_model.output
     # x = Dense(512, activation='relu', init='glorot_normal', name='fc1')(x)
-
+    model.save('retest_alexnet.h5')
+    print('Saved model')
     # train_datagen = ImageDataGenerator(
     #     rescale=1./255,
     #     shear_range=0.2,
@@ -135,12 +138,13 @@ def alexnet(weights_path=None):
     dense_4 = Dropout(0.5)(dense_3)
 
     # output: 14 affordances, gaussian std 0.01
-    dense_4 = Dense(14, activation='hard_sigmoid', name='dense_4')(dense_4)
+    dense_4 = Dense(14, activation='linear', name='dense_4')(dense_4)
     # dense_4 = Dense(14, activation='linear', name='dense_4')(dense_4)
 
     model = Model(input=inputs, output=dense_4)
     model.summary()
 
+    
     if weights_path:
         model.load_weights(weights_path)
 
@@ -172,7 +176,8 @@ def our_datagen(db, keys, avg,batch_size):
             # img[:, :, 1] -= 116.779
             # img[:, :, 2] -= 103.939
             # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
+            plt.imshow(img)
+            plt.show()
             img = img / 255.0
             img = np.subtract(img, avg)
             if K.image_dim_ordering() == 'th':
@@ -262,5 +267,5 @@ if __name__ == "__main__":
 
     model = train(db, keys, avg)
 
-    model.save(folder + "models/alexnet%d.h5" % model_num)
+    model.save(folder + "models/acnn%d.h5" % model_num)
     print("Time taken is %s seconds " % (time() - start_time))

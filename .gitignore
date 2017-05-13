@@ -96,4 +96,5 @@ graph/
 events.out*
 *.csv
 *~
+*.json
 

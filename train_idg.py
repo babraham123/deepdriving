@@ -1,7 +1,7 @@
-from alexnet import AlexNet
-import caffe
-from caffe.proto import caffe_pb2
-import plyvel
+from alexnet_13 import AlexNet
+#import caffe
+#from caffe.proto import caffe_pb2
+#import plyvel
 import numpy as np
 import h5py
 from keras import backend as K
@@ -20,7 +20,7 @@ def train(db, keys, avg):
     stream_size = batch_size * 100  # ~10K images loaded at a time
 
     model = AlexNet()
-
+    model.save('test_alexnet.h5')
     # for i in range(0, m, stream_size):
     #     X_batch, Y_batch = get_data(db, keys[i:(i + stream_size)], avg)
     #     model.fit(X_batch, Y_batch, batch_size=batch_size, nb_epoch=1, verbose=2)
