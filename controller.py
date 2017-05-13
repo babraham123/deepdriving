@@ -1,43 +1,54 @@
 import math
 
 
-def controller(affordances, prev_affordances, steering_record, state):
-    # a controller processes the cnn output and get the optimal steering, acceleration/brake
+def controller(affordances, prev_affordances, state, speed):
+    # controller processes the affordances and calculates the optimal
+    # steering angle and acceleration/brake (throttle)
     # torcs_run_3lane.cpp lines 360 - 564
 
-    # TODO:
-    road_width, steering_head, timer_set, lane_change, speed, goto_lane = state
-
-    # de-normalize, average shift data
-    angle = (affordances[0] - 0.5) * 1.1
-
-    toMarking_L = (affordances[1] - 1.34445) * 5.6249
-    toMarking_M = (affordances[2] - 0.39091) * 6.8752
-    toMarking_R = (affordances[3] + 0.34445) * 5.6249
-
-    dist_L = (affordances[4] - 0.12) * 95
-    dist_R = (affordances[5] - 0.12) * 95
-
-    toMarking_LL = (affordances[6] - 1.48181) * 6.8752
-    toMarking_ML = (affordances[7] - 0.98) * 6.25
-    toMarking_MR = (affordances[8] - 0.02) * 6.25
-    toMarking_RR = (affordances[9] + 0.48181) * 6.8752
-
-    dist_LL = (affordances[10] - 0.12) * 95
-    dist_MM = (affordances[11] - 0.12) * 95
-    dist_RR = (affordances[12] - 0.12) * 95
-
+    # driving affordances
+    angle = affordances[0]
+    toMarking_L = affordances[1]
+    toMarking_M = affordances[2]
+    toMarking_R = affordances[3]
+    dist_L = affordances[4]
+    dist_R = affordances[5]
+    toMarking_LL = affordances[6]
+    toMarking_ML = affordances[7]
+    toMarking_MR = affordances[8]
+    toMarking_RR = affordances[9]
+    dist_LL = affordances[10]
+    dist_MM = affordances[11]
+    dist_RR = affordances[12]
     if (affordances[13] > 0.5):
         fast = 1
     else:
         fast = 0
+
+    # control variables
+    coe_steer, lane_change, pre_ML, pre_MR, steering_head, left_clear, right_clear, left_timer, right_timer, steering_record, goto_lane = state
+    road_width = 8.0
+    center_line = 0.0
+    desired_speed = 0.0
+    slow_down = 100.0
+    timer_set = 60
+
+    # from visualizing code
+    if (toMarking_LL > -8 and toMarking_RR > 8 and (-toMarking_ML + toMarking_MR) < 5.5):
+        goto_lane = 2
+    elif (toMarking_RR < 8 and toMarking_LL < -8 and (-toMarking_ML + toMarking_MR) < 5.5):
+        goto_lane = 1
+    elif (toMarking_RR < 8 and toMarking_LL > -8 and (-toMarking_ML + toMarking_MR) < 5.5):  # central lane
+        if ((toMarking_ML + toMarking_MR) > 0):
+            goto_lane = 1
+        else:
+            goto_lane = 2
 
     if (goto_lane == 2 and toMarking_LL < -8):
         toMarking_LL = -7.5  # correct error output
     if (goto_lane == 1 and toMarking_RR > 8):
         toMarking_RR = 7.5
 
-    slow_down = 100.0
     pre_dist_L = prev_affordances[10]
     pre_dist_R = prev_affordances[12]
     # end of pre-processing
@@ -211,3 +222,24 @@ def controller(affordances, prev_affordances, steering_record, state):
 
     action = [steerCmd, brakeCmd, accelCmd]
     return action
+
+
+def descale_output(affordances):
+    affordances[0] = (affordances[0] - 0.5) * 1.1
+
+    affordances[1] = (affordances[1] - 1.34445) * 5.6249
+    affordances[2] = (affordances[2] - 0.39091) * 6.8752
+    affordances[3] = (affordances[3] + 0.34445) * 5.6249
+
+    affordances[4] = (affordances[4] - 0.12) * 95
+    affordances[5] = (affordances[5] - 0.12) * 95
+
+    affordances[6] = (affordances[6] - 1.48181) * 6.8752
+    affordances[7] = (affordances[7] - 0.98) * 6.25
+    affordances[8] = (affordances[8] - 0.02) * 6.25
+    affordances[9] = (affordances[9] + 0.48181) * 6.8752
+
+    affordances[10] = (affordances[10] - 0.12) * 95
+    affordances[11] = (affordances[11] - 0.12) * 95
+    affordances[12] = (affordances[12] - 0.12) * 95
+    return affordances

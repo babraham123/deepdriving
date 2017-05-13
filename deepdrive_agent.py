@@ -10,26 +10,22 @@ class Agent(object):
         self.model = load_model('deepdriving_model_rand.h5')
         self.average = self.load_average()
         self.is_tf = (K.image_dim_ordering() == 'tf')
-        self.steering_record = [0, 0, 0, 0, 0]
-        self.prev_affordances = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30.0, 0, 30.0, 0]
+        self.prev_affordances = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 30.0, 0.0, 30.0, 0.0]
 
-        road_width = 8.0
         coe_steer = 1.0
         lane_change = 0
+        pre_ML = 0
+        pre_MR = 0
         steering_head = 0
 
         left_clear = 0
         right_clear = 0
         left_timer = 0
         right_timer = 0
-        timer_set = 60
-        pre_dist_L = 60.0
-        pre_dist_R = 60.0
-        steer_trend
+        steering_record = [0.0, 0.0, 0.0, 0.0, 0.0]
         goto_lane = 0
 
-        self.state = [road_width, steering_head, timer_set, lane_change, speed, goto_lane]
-        # road_width, steering_head, timer_set, lane_change, speed = state
+        self.state = [coe_steer, lane_change, pre_ML, pre_MR, steering_head, left_clear, right_clear, left_timer, right_timer, steering_record, goto_lane]
 
     def load_average():
         h5f = h5py.File('deepdriving_average.h5', 'r')
@@ -73,7 +69,7 @@ class Agent(object):
             im = self.preprocess_image(vision)
             predict_affordances = self.model.predict(im)
             affordances.tolist()
-            action = controller(affordances, self.prev_affordances, self.state)
+            action = controller(affordances, self.prev_affordances, self.state, speedX)
             self.prev_affordances = affordances
 
         else:
