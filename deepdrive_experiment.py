@@ -1,5 +1,5 @@
 from gym_torcs import TorcsEnv
-from sample_agent import Agent
+from deepdrive_agent import Agent
 import numpy as np
 
 vision = True
@@ -10,8 +10,8 @@ done = False
 step = 0
 
 # Generate a Torcs environment
-env = TorcsEnv(vision=vision, throttle=False)
-agent = Agent(1)  # steering only
+env = TorcsEnv(vision=vision, throttle=True)
+agent = Agent(2)  # steering only
 
 print("TORCS Experiment Start")
 for i in range(episode_count):
@@ -41,3 +41,4 @@ for i in range(episode_count):
 
 env.end()  # This is for shutting down TORCS
 print("Finish")
+
