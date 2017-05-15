@@ -92,6 +92,8 @@ cd Caffe_driving
 make
 
 
+cp -r modified_tracks/* /usr/local/share/games/torcs/tracks/road/
+
 Delete Torcs
 sudo rm -rf /usr/local/lib/torcs /usr/local/bin/torcs /usr/local/share/games/torcs /home/asankar/.torcs
 

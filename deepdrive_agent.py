@@ -7,12 +7,13 @@ from controller import controller
 
 class Agent(object):
     def __init__(self, dim_action):
+        self.dim_action = dim_action
         self.model = load_model('friday_model.h5')
         self.model.load_weights('cnnmodel10_weights.h5')
         self.average = self.load_average()
         self.is_tf = (K.image_dim_ordering() == 'tf')
-        self.prev_affordances = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 30.0, 0.0, 30.0, 0.0]
-
+        self.prev_affordances = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                 0.0, 0.0, 0.0, 30.0, 0.0, 30.0, 0.0]
         coe_steer = 1.0
         lane_change = 0
         pre_ML = 0
@@ -26,7 +27,9 @@ class Agent(object):
         steering_record = [0.0, 0.0, 0.0, 0.0, 0.0]
         goto_lane = 0
 
-        self.state = [coe_steer, lane_change, pre_ML, pre_MR, steering_head, left_clear, right_clear, left_timer, right_timer, steering_record, goto_lane]
+        self.state = [coe_steer, lane_change, pre_ML, pre_MR, steering_head,
+                      left_clear, right_clear, left_timer, right_timer,
+                      steering_record, goto_lane]
 
     def load_average():
         h5f = h5py.File('deepdriving_average.h5', 'r')
@@ -55,10 +58,6 @@ class Agent(object):
         if vision_on:
             focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, affordances, vision = ob
             '''
-            The code below is for checking the vision input. 
-            This is very heavy for real-time Control
-            So you may need to remove.
-            
             img = np.ndarray((64,64,3))
             for i in range(3):
                 img[:, :, i] = 255 - vision[:, i].reshape((64, 64))
@@ -75,8 +74,7 @@ class Agent(object):
 
         else:
             focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, affordances = ob
-            action = np.tanh(np.random.randn(2))  # random action
+            action = np.tanh(np.random.randn(self.dim_action))  # random action
 
-        # action = (steering angle, throttle amt)
+        # action = [steer, accel, brake]
         return action
-

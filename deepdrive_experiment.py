@@ -11,7 +11,7 @@ step = 0
 
 # Generate a Torcs environment
 env = TorcsEnv(vision=vision, throttle=True)
-agent = Agent(2)  # steering only
+agent = Agent(3)  # [steering, accel, brake], no gear change
 
 print("TORCS Experiment Start")
 for i in range(episode_count):
@@ -28,7 +28,7 @@ for i in range(episode_count):
         action = agent.act(ob, reward, done, vision)
 
         ob, reward, done, _ = env.step(action)
-        #print(ob)
+        # print(ob)
         total_reward += reward
 
         step += 1

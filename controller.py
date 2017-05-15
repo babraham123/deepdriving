@@ -175,7 +175,6 @@ def controller(affordances, prev_affordances, state, speed):
             lane_change = 0
 
     ############## END implement lane changing or car-following
-    # ??? shared->steerCmd
     steerCmd = (angle - (center_line / road_width)) / 0.541052 / coe_steer  # steering control, "steerCmd" [-1,1] is the value sent back to TORCS
 
     if (lane_change == 0 and coe_steer > 1 and steerCmd > 0.1):   # reshape the steering control curve
@@ -197,8 +196,7 @@ def controller(affordances, prev_affordances, state, speed):
     if (slow_down < desired_speed):
         desired_speed = slow_down
 
-    ############ speed control
-    # ??? shared->speed, shared->accelCmd, shared->brakeCmd      
+    ############ speed control    
     if (desired_speed >= speed):
         accelCmd = 0.2 * (desired_speed - speed + 1)
         if (accelCmd > 1):
@@ -220,7 +218,7 @@ def controller(affordances, prev_affordances, state, speed):
         (coe_steer, lane_change, steerCmd, math.floor(desired_speed * 3.6), math.floor(speed * 3.6), left_clear, right_clear, timer_set))
     ########## END a controller processes the cnn output and get the optimal steering, acceleration/brake
 
-    action = [steerCmd, brakeCmd, accelCmd]
+    action = [steerCmd, accelCmd, brakeCmd]
     return action
 
 
