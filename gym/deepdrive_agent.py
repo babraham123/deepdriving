@@ -7,9 +7,10 @@ from controller import controller
 
 class Agent(object):
     def __init__(self, dim_action):
+        folder = '/home/lkara/deepdrive/deepdriving/new/avimodel/'
         self.dim_action = dim_action
-        self.model = load_model('friday_model.h5')
-        self.model.load_weights('cnnmodel10_weights.h5')
+        self.model = load_model(folder + 'friday_model.h5')
+        self.model.load_weights(folder + 'cnnmodel10_weights.h5')
         self.average = self.load_average()
         self.is_tf = (K.image_dim_ordering() == 'tf')
         self.prev_affordances = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
