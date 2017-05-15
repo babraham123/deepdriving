@@ -152,6 +152,7 @@ def get_data(db, keys, avg):
 
     for i, key in enumerate(keys):
         img = cv2.imread(key)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # img.shape = 210x280x3
         if not same_size:
             img = cv2.resize(img, (227, 227))
@@ -162,7 +163,6 @@ def get_data(db, keys, avg):
         # img[:, :, 0] -= 123.68
         # img[:, :, 1] -= 116.779
         # img[:, :, 2] -= 103.939
-        # img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         img = img / 255.0
         img = np.subtract(img, avg)
