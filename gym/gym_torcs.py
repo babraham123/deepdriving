@@ -252,39 +252,10 @@ class TorcsEnv:
                  'rpm',
                  'track',
                  'wheelSpinVel',
-                 'c_angle', # affordances
-                 'toMarking_L',
-                 'toMarking_M',
-                 'toMarking_R',
-                 'dist_L',
-                 'dist_R',
-                 'toMarking_LL',
-                 'toMarking_ML',
-                 'toMarking_MR',
-                 'toMarking_RR',
-                 'dist_LL',
-                 'dist_MM',
-                 'dist_RR',
-                 'fast',
+                 'affordances',
                 ]
-        if self.vision is False:
-            Observation = col.namedtuple('Observaion', names)
-            return Observation(focus=np.array(raw_obs['focus'], dtype=np.float32)/200.,
-                               speedX=np.array(raw_obs['speedX'], dtype=np.float32)/self.default_speed,
-                               speedY=np.array(raw_obs['speedY'], dtype=np.float32)/self.default_speed,
-                               speedZ=np.array(raw_obs['speedZ'], dtype=np.float32)/self.default_speed,
-                               opponents=np.array(raw_obs['opponents'], dtype=np.float32)/200.,
-                               rpm=np.array(raw_obs['rpm'], dtype=np.float32),
-                               track=np.array(raw_obs['track'], dtype=np.float32)/200.,
-                               wheelSpinVel=np.array(raw_obs['wheelSpinVel'], dtype=np.float32))
-        else:
-            names.append('img')
-            Observation = col.namedtuple('Observaion', names)
 
-            # Get RGB from observation
-            image_rgb = self.obs_vision_to_image_rgb(raw_obs[names[-1]])
-
-            affordances = [
+        affordances = [
                 raw_obs['c_angle'],
                 raw_obs['toMarking_L'],
                 raw_obs['toMarking_M'],
@@ -299,8 +270,27 @@ class TorcsEnv:
                 raw_obs['dist_MM'],
                 raw_obs['dist_RR'],
                 raw_obs['fast'],
-            ]
-            affordances = np.array(affordances, dtype=np.float32)
+        ]
+
+        affordances = np.array(affordances, dtype=np.float32)
+
+        if self.vision is False:
+            Observation = col.namedtuple('Observaion', names)
+            return Observation(focus=np.array(raw_obs['focus'], dtype=np.float32)/200.,
+                               speedX=np.array(raw_obs['speedX'], dtype=np.float32)/self.default_speed,
+                               speedY=np.array(raw_obs['speedY'], dtype=np.float32)/self.default_speed,
+                               speedZ=np.array(raw_obs['speedZ'], dtype=np.float32)/self.default_speed,
+                               opponents=np.array(raw_obs['opponents'], dtype=np.float32)/200.,
+                               rpm=np.array(raw_obs['rpm'], dtype=np.float32),
+                               track=np.array(raw_obs['track'], dtype=np.float32)/200.,
+                               wheelSpinVel=np.array(raw_obs['wheelSpinVel'], dtype=np.float32),
+                               affordances=affordances)
+        else:
+            names.append('img')
+            Observation = col.namedtuple('Observaion', names)
+
+            # Get RGB from observation
+            image_rgb = self.obs_vision_to_image_rgb(raw_obs[names[-1]])
 
             return Observation(focus=np.array(raw_obs['focus'], dtype=np.float32)/200.,
                                speedX=np.array(raw_obs['speedX'], dtype=np.float32)/self.default_speed,
@@ -310,5 +300,5 @@ class TorcsEnv:
                                rpm=np.array(raw_obs['rpm'], dtype=np.float32),
                                track=np.array(raw_obs['track'], dtype=np.float32)/200.,
                                wheelSpinVel=np.array(raw_obs['wheelSpinVel'], dtype=np.float32),
-                               img=image_rgb,
-                               affordances=affordances)
+                               affordances=affordances,
+                               img=image_rgb)
