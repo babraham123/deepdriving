@@ -7,9 +7,9 @@ from controller import controller
 
 class Agent(object):
     def __init__(self, dim_action):
-        folder = '/home/lkara/deepdrive/deepdriving/new/'
+        self.folder = '/home/lkara/deepdrive/deepdriving/new/'
         self.dim_action = dim_action
-        self.model = load_model(folder + 'friday_model.h5')
+        self.model = load_model(self.folder + 'friday_model.h5')
         # self.model.load_weights(folder + 'cnnmodel10_weights.h5')
         self.average = self.load_average()
         self.is_tf = (K.image_dim_ordering() == 'tf')
@@ -32,8 +32,8 @@ class Agent(object):
                       left_clear, right_clear, left_timer, right_timer,
                       steering_record, goto_lane]
 
-    def load_average():
-        h5f = h5py.File('deepdriving_average.h5', 'r')
+    def load_average(self):
+        h5f = h5py.File(self.folder + '../deepdriving_average.h5', 'r')
         avg = h5f['average'][:]
         h5f.close()
         return avg
@@ -67,8 +67,8 @@ class Agent(object):
             plt.pause(0.001)
             '''
 
-            im = self.preprocess_image(vision)
-            predict_affordances = self.model.predict(im)
+            # im = self.preprocess_image(vision)
+            # predict_affordances = self.model.predict(im)
             affordances.tolist()
             action = controller(affordances, self.prev_affordances, self.state, speedX)
             self.prev_affordances = affordances
